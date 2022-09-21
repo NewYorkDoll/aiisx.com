@@ -12,6 +12,7 @@ html,
 body {
   height: 100%;
   width: 100%;
+  background-color: #101014;
   @apply flex flex-auto;
   @apply bg-zinc-800 text-zinc-100;
   font-family: Consolas, monaco, monospace;
@@ -21,7 +22,7 @@ a {
   @apply text-emerald-500 hover:text-emerald-600;
 }
 
-#app {
+#__nuxt {
   max-height: 100%;
   max-width: 100%;
   font-family: Consolas, monaco, monospace;

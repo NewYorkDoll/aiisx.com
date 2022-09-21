@@ -7,7 +7,19 @@ export {}
 
 declare module '@vue/runtime-core' {
   export interface GlobalComponents {
+    ILogosGopher: typeof import('~icons/logos/gopher')['default']
+    ILogosVisualStudioCode: typeof import('~icons/logos/visual-studio-code')['default']
+    ILogosVue: typeof import('~icons/logos/vue')['default']
+    IMdiGithub: typeof import('~icons/mdi/github')['default']
+    IMdiSourceBranch: typeof import('~icons/mdi/source-branch')['default']
+    NAvatar: typeof import('naive-ui')['NAvatar']
+    NButton: typeof import('naive-ui')['NButton']
+    NCard: typeof import('naive-ui')['NCard']
     NConfigProvider: typeof import('naive-ui')['NConfigProvider']
+    NIcon: typeof import('naive-ui')['NIcon']
+    NLayoutFooter: typeof import('naive-ui')['NLayoutFooter']
+    NPopover: typeof import('naive-ui')['NPopover']
+    NTooltip: typeof import('naive-ui')['NTooltip']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
   }
