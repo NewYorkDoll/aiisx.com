@@ -3,7 +3,8 @@ import Components from "unplugin-vue-components/vite";
 import { NaiveUiResolver } from "unplugin-vue-components/resolvers";
 import IconsResolver from "unplugin-icons/resolver";
 import Icons from "unplugin-icons/vite";
-
+import UnoCSS from 'unocss'
+import UnocssIcons from '@unocss/preset-icons'
 // https://v3.nuxtjs.org/api/configuration/nuxt.config
 export default defineNuxtConfig({
   typescript: {
@@ -11,6 +12,7 @@ export default defineNuxtConfig({
   },
   buildModules: ["@nuxtjs/tailwindcss"],
   modules: [
+    '@unocss/nuxt',
     [
       "@pinia/nuxt",
       {
@@ -23,6 +25,15 @@ export default defineNuxtConfig({
       },
     ],
   ],
+  unocss: {
+    // presets
+    uno: false, // enabled "@unocss/preset-uno"
+    icons: true, // enabled "@unocss/preset-icons"
+    attributify: false, // enabled "@unocss/preset-attributify"
+    // core options
+    shortcuts: [],
+    rules: [],
+},
   css: ["@/assets/css/main.css"],
   build: {
     transpile:
@@ -48,30 +59,30 @@ export default defineNuxtConfig({
     plugins: [
       AutoImport({
         imports: ["vue", "@vueuse/core"],
-        resolvers: [
-          IconsResolver({
-            componentPrefix: "icon",
-            enabledCollections: ["mdi", "logos"],
-          }),
-        ],
+        // resolvers: [
+        //   IconsResolver({
+        //     componentPrefix: "icon",
+        //     enabledCollections: ["mdi", "logos"],
+        //   }),
+        // ],
         eslintrc: {
           enabled: true,
         },
       }),
-      Icons({
-        autoInstall: true,
-        defaultClass: "icon",
-      }),
+      // Icons({
+      //   autoInstall: true,
+      //   defaultClass: "icon",
+      // }),
       Components({
         dts: true,
         directives: true,
         directoryAsNamespace: false,
         resolvers: [
           NaiveUiResolver(),
-          IconsResolver({
-            componentPrefix: "i",
-            enabledCollections: ["mdi", "logos"],
-          }),
+          // IconsResolver({
+          //   componentPrefix: "i",
+          //   enabledCollections: ["mdi", "logos"],
+          // }),
         ],
       }),
     ],

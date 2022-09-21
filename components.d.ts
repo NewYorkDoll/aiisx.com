@@ -8,6 +8,9 @@ export {}
 declare module '@vue/runtime-core' {
   export interface GlobalComponents {
     ILogosGopher: typeof import('~icons/logos/gopher')['default']
+    ILogosLogo: typeof import('~icons/logos/logo')['default']
+    'ILogosLogos:vue': typeof import('~icons/logos/logos-vue')['default']
+    ILogosLogoVue: typeof import('~icons/logos/logo-vue')['default']
     ILogosVisualStudioCode: typeof import('~icons/logos/visual-studio-code')['default']
     ILogosVue: typeof import('~icons/logos/vue')['default']
     IMdiGithub: typeof import('~icons/mdi/github')['default']
