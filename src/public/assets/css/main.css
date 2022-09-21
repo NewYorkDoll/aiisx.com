@@ -15,7 +15,6 @@ body {
   @apply flex flex-auto;
   font-family: Consolas, monaco, monospace;
   background-color: #101014;
-
 }
 
 a {

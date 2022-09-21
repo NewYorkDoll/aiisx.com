@@ -1,5 +1,8 @@
 {
   "editor.formatOnSave": true,
+  "files.associations": {
+    "*/**/*.css": "postcss"
+  },
   "[css]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
@@ -24,5 +27,5 @@
   "editor.codeActionsOnSave": {
     "source.fixAll": true
   },
-  "typescript.tsdk": "./node_modules/typescript/lib"
+  "typescript.tsdk": "src/public/node_modules/typescript/lib"
 }
