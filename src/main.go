@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 
+	"aiisx.com/src/database/graphql"
 	"aiisx.com/src/gh"
 	"github.com/apex/log"
 	"github.com/gin-gonic/gin"
@@ -22,13 +23,20 @@ func main() {
 	}
 
 	gin.SetMode(GIN_MODE)
-	r := gin.Default()
+	r := gin.New()
+
 	logger = log.WithFields(log.Fields{
 		"filename": "main.go",
 	})
 
 	ctx := context.Background()
+
 	gh.NewChient(ctx, GITHUB_ACCESS_TOKEN)
+	srv := graphql.New()
+	r.Any("/graphql", func(c *gin.Context) {
+		srv.ServeHTTP(c.Writer, c.Request)
+	})
+
 	g.Go(func() error {
 		logger.Info("github UserRunner run!")
 		return gh.UserRunner(ctx, GITHUB_USERNAME)

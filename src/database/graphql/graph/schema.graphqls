@@ -1,0 +1,33 @@
+scalar Time
+
+
+
+
+
+
+
+
+
+type GithubUser {
+    id: Int!
+    login: String!
+    name: String
+    avatarURL: String!
+    email: String
+    location: String
+    bio: String
+    htmlurl: String
+    publicRepos: Int
+    followers: Int
+    following: Int
+    createdAt: Timestamp
+    updatedAt: Timestamp
+}
+
+type Timestamp {
+    Time: Time!
+}
+
+type Query {
+    githubUser: GithubUser!
+}
