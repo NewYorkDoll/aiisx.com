@@ -6,6 +6,8 @@ import (
 	"aiisx.com/src/config"
 	"aiisx.com/src/database/graphql"
 	"aiisx.com/src/gh"
+	"aiisx.com/src/models"
+	"aiisx.com/src/wakapi"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/apex/log"
 	"github.com/gin-gonic/gin"
@@ -47,7 +49,12 @@ func main() {
 	r.POST("/query", func(c *gin.Context) {
 		srv.ServeHTTP(c.Writer, c.Request)
 	})
-
+	g.Go(func() error {
+		configWakAPI := models.ConfigWakAPI{
+			URL:    config.WAKAPI_URL,
+			APIKey: config.WAKAPI_KEY}
+		return wakapi.NewRunner(logger, configWakAPI).Run(ctx)
+	})
 	g.Go(func() error {
 		logger.Info("github UserRunner run!")
 		return gh.UserRunner(ctx, config.GITHUB_USERNAME)

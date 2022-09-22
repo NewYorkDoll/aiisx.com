@@ -1,11 +1,27 @@
 query base {
-        githubUser {
-        login
-        name
-        avatarURL
-        bio
-        email
-        location
-        htmlurl
+  githubUser {
+    login
+    name
+    avatarURL
+    bio
+    email
+    location
+    htmlurl
+  }
+  version {
+    commit
+    goVersion
+    date
+  }
+
+  codingStats {
+    totalDuration
+    totalSeconds
+    calculatedDays
+
+    languages {
+      language
+      totalSeconds
     }
+  }
 }

@@ -6,7 +6,7 @@ TAG     := $(shell git describe --tags --always --abbrev=0 --match="v[0-9]*.[0-9
 VERSION := $(shell echo "${TAG}" | sed 's/^.//')
 
 
-LDFLAGS_DEV     := -ldflags "-X '${REPO}/src/version.CommitHash=${HASH}' -X '${REPO}/src/version.CompileDate=${DATE}'"
+LDFLAGS_DEV     := -ldflags "-X '${REPO}/src/version.CommitHash=${HASH}' -X '${REPO}/src/version.CompileDate=${DATE}' -X '${REPO}/src/version.CompileDate=${DATE}'"
 LDFLAGS_RELEASE := -ldflags "-X '${REPO}/src/version.Version=${VERSION}' -X '${REPO}/src/version.CommitHash=${HASH}' -X '${REPO}/src/version.CompileDate=${DATE}'"
 
 

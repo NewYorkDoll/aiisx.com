@@ -24,7 +24,7 @@ const state = useBaseState();
                   </n-icon>
                 </span>
               </template>
-              build date: unknown
+              build date: {{state.base!.version.date}}
             </n-tooltip>
 
             <n-popover placement="top-start" raw :show-arrow="false"
@@ -59,7 +59,7 @@ const state = useBaseState();
               <n-icon class="mr-1 align-middle">
                 <div class="i-logos-gopher"></div>
               </n-icon>
-              1.19.1
+              {{ state.base!.version.goVersion.replace(/^go/, "") }}
             </span>
             <span class="bar-item misc">
               <n-icon class="mr-1 align-middle">
@@ -86,7 +86,7 @@ const state = useBaseState();
                     <div class="i-mdi-github"></div>
 
                   </n-icon>
-                  {{ state.base?.githubUser.name }}
+                  {{ state.base?.githubUser.login }}
                 </a>
               </template>
               <p>

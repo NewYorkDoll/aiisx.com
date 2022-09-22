@@ -7,6 +7,7 @@ package resolver
 //go:generate go run github.com/99designs/gqlgen generate
 import (
 	"aiisx.com/src/database/graphql/graph/generated"
+	"aiisx.com/src/models"
 	"github.com/99designs/gqlgen/graphql"
 )
 
@@ -16,6 +17,7 @@ import (
 
 // Resolver is the GQL resolver root.
 type Resolver struct {
+	codingStats *models.CodingStats
 }
 
 // NewSchema creates a graphql executable schema.
