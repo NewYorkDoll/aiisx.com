@@ -1,15 +1,18 @@
 package main
 
 import (
-	"os"
+	"context"
 
+	"aiisx.com/src/gh"
 	"github.com/apex/log"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"golang.org/x/sync/errgroup"
 )
 
 var (
 	logger log.Interface
+	g      errgroup.Group
 )
 
 func main() {
@@ -17,14 +20,24 @@ func main() {
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
-	GIN_MODE := os.Getenv("GIN_MODE")
+
 	gin.SetMode(GIN_MODE)
 	r := gin.Default()
-	logger := log.WithFields(log.Fields{})
-	logger.Info("test info message")
-	if err := r.Run(); err != nil {
-		logger.WithError(err).Fatal("shutting down")
-	} else {
-		logger.Info("Listening and serving HTTP on http://localhost:8080")
-	} // 监听并在 0.0.0.0:8080 上启动服务
+	logger = log.WithFields(log.Fields{
+		"filename": "main.go",
+	})
+
+	ctx := context.Background()
+	gh.NewChient(ctx, GITHUB_ACCESS_TOKEN)
+	g.Go(func() error {
+		logger.Info("github UserRunner run!")
+		return gh.UserRunner(ctx, GITHUB_USERNAME)
+	})
+	g.Go(func() error {
+		logger.Info("server run!")
+		return r.Run()
+	})
+	if e := g.Wait(); e != nil {
+		log.Fatal(e.Error())
+	}
 }
