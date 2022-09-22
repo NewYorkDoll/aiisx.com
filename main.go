@@ -4,7 +4,9 @@ import (
 	"context"
 
 	"aiisx.com/src/config"
+	"aiisx.com/src/database"
 	"aiisx.com/src/database/graphql"
+	"aiisx.com/src/ent"
 	"aiisx.com/src/gh"
 	"aiisx.com/src/models"
 	"aiisx.com/src/wakapi"
@@ -16,6 +18,7 @@ import (
 )
 
 var (
+	db     *ent.Client
 	logger log.Interface
 	g      errgroup.Group
 )
@@ -29,19 +32,23 @@ func playgroundHandler() gin.HandlerFunc {
 }
 
 func main() {
+
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
-
-	gin.SetMode(config.GIN_MODE)
-	r := gin.New()
-
+	ctx := context.Background()
 	logger = log.WithFields(log.Fields{
 		"filename": "main.go",
 	})
 
-	ctx := context.Background()
+	db = database.Open(ctx, logger, config.Database)
+	defer db.Close()
+	c := ent.NewContext(log.NewContext(context.Background(), logger), db)
+	database.Migrate(c, logger)
+
+	gin.SetMode(config.GIN_MODE)
+	r := gin.New()
 
 	gh.NewChient(ctx, config.GITHUB_ACCESS_TOKEN)
 	srv := graphql.New()

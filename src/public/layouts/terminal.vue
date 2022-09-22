@@ -14,7 +14,7 @@ const state = useBaseState();
         :value="'Hello!'" />
       <n-card content-style="padding: 0;display: flex;flex-direction: column;" class="flex flex-auto w-full h-full p-0">
         <slot />
-        <n-layout-footer bordered class="bottom-bar">
+        <n-layout-footer :bordered="true" class="bottom-bar">
           <span class="flex flex-auto">
             <n-tooltip trigger="hover">
               <template #trigger>

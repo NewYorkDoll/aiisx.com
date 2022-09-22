@@ -1,10 +1,5 @@
 package models
 
-type ConfigWakAPI struct {
-	URL    string `env:"URL"     long:"url"     required:"true" description:"wakapi connection url"`
-	APIKey string `env:"API_KEY" long:"api-key" required:"true" description:"WakAPI API key"`
-}
-
 type CodingStats struct {
 	Languages      []LanguageStat `json:"languages"`
 	TotalSeconds   int            `json:"total_seconds"`
