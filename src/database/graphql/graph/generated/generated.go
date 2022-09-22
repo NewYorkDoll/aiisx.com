@@ -62,12 +62,30 @@ type ComplexityRoot struct {
 		UpdatedAt   func(childComplexity int) int
 	}
 
+	Link struct {
+		Name func(childComplexity int) int
+		URL  func(childComplexity int) int
+	}
+
 	Query struct {
 		GithubUser func(childComplexity int) int
+		Version    func(childComplexity int) int
 	}
 
 	Timestamp struct {
 		Time func(childComplexity int) int
+	}
+
+	VersionInfo struct {
+		Arch      func(childComplexity int) int
+		Command   func(childComplexity int) int
+		Commit    func(childComplexity int) int
+		Date      func(childComplexity int) int
+		GoVersion func(childComplexity int) int
+		Links     func(childComplexity int) int
+		Name      func(childComplexity int) int
+		Os        func(childComplexity int) int
+		Version   func(childComplexity int) int
 	}
 }
 
@@ -77,6 +95,7 @@ type GithubUserResolver interface {
 }
 type QueryResolver interface {
 	GithubUser(ctx context.Context) (*github.User, error)
+	Version(ctx context.Context) (*model.VersionInfo, error)
 }
 
 type executableSchema struct {
@@ -185,6 +204,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.GithubUser.UpdatedAt(childComplexity), true
 
+	case "Link.name":
+		if e.complexity.Link.Name == nil {
+			break
+		}
+
+		return e.complexity.Link.Name(childComplexity), true
+
+	case "Link.url":
+		if e.complexity.Link.URL == nil {
+			break
+		}
+
+		return e.complexity.Link.URL(childComplexity), true
+
 	case "Query.githubUser":
 		if e.complexity.Query.GithubUser == nil {
 			break
@@ -192,12 +225,82 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.GithubUser(childComplexity), true
 
+	case "Query.version":
+		if e.complexity.Query.Version == nil {
+			break
+		}
+
+		return e.complexity.Query.Version(childComplexity), true
+
 	case "Timestamp.Time":
 		if e.complexity.Timestamp.Time == nil {
 			break
 		}
 
 		return e.complexity.Timestamp.Time(childComplexity), true
+
+	case "VersionInfo.arch":
+		if e.complexity.VersionInfo.Arch == nil {
+			break
+		}
+
+		return e.complexity.VersionInfo.Arch(childComplexity), true
+
+	case "VersionInfo.command":
+		if e.complexity.VersionInfo.Command == nil {
+			break
+		}
+
+		return e.complexity.VersionInfo.Command(childComplexity), true
+
+	case "VersionInfo.commit":
+		if e.complexity.VersionInfo.Commit == nil {
+			break
+		}
+
+		return e.complexity.VersionInfo.Commit(childComplexity), true
+
+	case "VersionInfo.date":
+		if e.complexity.VersionInfo.Date == nil {
+			break
+		}
+
+		return e.complexity.VersionInfo.Date(childComplexity), true
+
+	case "VersionInfo.goVersion":
+		if e.complexity.VersionInfo.GoVersion == nil {
+			break
+		}
+
+		return e.complexity.VersionInfo.GoVersion(childComplexity), true
+
+	case "VersionInfo.links":
+		if e.complexity.VersionInfo.Links == nil {
+			break
+		}
+
+		return e.complexity.VersionInfo.Links(childComplexity), true
+
+	case "VersionInfo.name":
+		if e.complexity.VersionInfo.Name == nil {
+			break
+		}
+
+		return e.complexity.VersionInfo.Name(childComplexity), true
+
+	case "VersionInfo.os":
+		if e.complexity.VersionInfo.Os == nil {
+			break
+		}
+
+		return e.complexity.VersionInfo.Os(childComplexity), true
+
+	case "VersionInfo.version":
+		if e.complexity.VersionInfo.Version == nil {
+			break
+		}
+
+		return e.complexity.VersionInfo.Version(childComplexity), true
 
 	}
 	return 0, false
@@ -251,7 +354,7 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
-	{Name: "../schema.graphqls", Input: `scalar Time
+	{Name: "../schema/schema.graphqls", Input: `scalar Time
 
 
 
@@ -283,6 +386,27 @@ type Timestamp {
 
 type Query {
     githubUser: GithubUser!
+}
+`, BuiltIn: false},
+	{Name: "../schema/version.graphqls", Input: `type VersionInfo {
+    name: String!
+    version: String!
+    commit: String!
+    date: String!
+    command: String!
+    goVersion: String!
+    os: String!
+    arch: String!
+    links: [Link!]
+}
+
+type Link {
+    name: String!
+    url: String!
+}
+
+extend type Query {
+    version: VersionInfo!
 }
 `, BuiltIn: false},
 }
@@ -895,6 +1019,94 @@ func (ec *executionContext) fieldContext_GithubUser_updatedAt(ctx context.Contex
 	return fc, nil
 }
 
+func (ec *executionContext) _Link_name(ctx context.Context, field graphql.CollectedField, obj *model.Link) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Link_name(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Link_name(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Link",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Link_url(ctx context.Context, field graphql.CollectedField, obj *model.Link) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Link_url(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.URL, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Link_url(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Link",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_githubUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Query_githubUser(ctx, field)
 	if err != nil {
@@ -962,6 +1174,70 @@ func (ec *executionContext) fieldContext_Query_githubUser(ctx context.Context, f
 				return ec.fieldContext_GithubUser_updatedAt(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type GithubUser", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_version(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_version(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Version(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.VersionInfo)
+	fc.Result = res
+	return ec.marshalNVersionInfo2ᚖaiisxᚗcomᚋsrcᚋdatabaseᚋgraphqlᚋgraphᚋmodelᚐVersionInfo(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_version(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "name":
+				return ec.fieldContext_VersionInfo_name(ctx, field)
+			case "version":
+				return ec.fieldContext_VersionInfo_version(ctx, field)
+			case "commit":
+				return ec.fieldContext_VersionInfo_commit(ctx, field)
+			case "date":
+				return ec.fieldContext_VersionInfo_date(ctx, field)
+			case "command":
+				return ec.fieldContext_VersionInfo_command(ctx, field)
+			case "goVersion":
+				return ec.fieldContext_VersionInfo_goVersion(ctx, field)
+			case "os":
+				return ec.fieldContext_VersionInfo_os(ctx, field)
+			case "arch":
+				return ec.fieldContext_VersionInfo_arch(ctx, field)
+			case "links":
+				return ec.fieldContext_VersionInfo_links(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type VersionInfo", field.Name)
 		},
 	}
 	return fc, nil
@@ -1135,6 +1411,405 @@ func (ec *executionContext) fieldContext_Timestamp_Time(ctx context.Context, fie
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VersionInfo_name(ctx context.Context, field graphql.CollectedField, obj *model.VersionInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_VersionInfo_name(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_VersionInfo_name(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VersionInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VersionInfo_version(ctx context.Context, field graphql.CollectedField, obj *model.VersionInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_VersionInfo_version(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Version, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_VersionInfo_version(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VersionInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VersionInfo_commit(ctx context.Context, field graphql.CollectedField, obj *model.VersionInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_VersionInfo_commit(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Commit, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_VersionInfo_commit(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VersionInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VersionInfo_date(ctx context.Context, field graphql.CollectedField, obj *model.VersionInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_VersionInfo_date(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Date, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_VersionInfo_date(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VersionInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VersionInfo_command(ctx context.Context, field graphql.CollectedField, obj *model.VersionInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_VersionInfo_command(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Command, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_VersionInfo_command(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VersionInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VersionInfo_goVersion(ctx context.Context, field graphql.CollectedField, obj *model.VersionInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_VersionInfo_goVersion(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.GoVersion, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_VersionInfo_goVersion(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VersionInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VersionInfo_os(ctx context.Context, field graphql.CollectedField, obj *model.VersionInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_VersionInfo_os(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Os, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_VersionInfo_os(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VersionInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VersionInfo_arch(ctx context.Context, field graphql.CollectedField, obj *model.VersionInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_VersionInfo_arch(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Arch, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_VersionInfo_arch(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VersionInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _VersionInfo_links(ctx context.Context, field graphql.CollectedField, obj *model.VersionInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_VersionInfo_links(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Links, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Link)
+	fc.Result = res
+	return ec.marshalOLink2ᚕᚖaiisxᚗcomᚋsrcᚋdatabaseᚋgraphqlᚋgraphᚋmodelᚐLinkᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_VersionInfo_links(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "VersionInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "name":
+				return ec.fieldContext_Link_name(ctx, field)
+			case "url":
+				return ec.fieldContext_Link_url(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Link", field.Name)
 		},
 	}
 	return fc, nil
@@ -3029,6 +3704,41 @@ func (ec *executionContext) _GithubUser(ctx context.Context, sel ast.SelectionSe
 	return out
 }
 
+var linkImplementors = []string{"Link"}
+
+func (ec *executionContext) _Link(ctx context.Context, sel ast.SelectionSet, obj *model.Link) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, linkImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Link")
+		case "name":
+
+			out.Values[i] = ec._Link_name(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "url":
+
+			out.Values[i] = ec._Link_url(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var queryImplementors = []string{"Query"}
 
 func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
@@ -3058,6 +3768,29 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_githubUser(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
+		case "version":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_version(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -3111,6 +3844,87 @@ func (ec *executionContext) _Timestamp(ctx context.Context, sel ast.SelectionSet
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var versionInfoImplementors = []string{"VersionInfo"}
+
+func (ec *executionContext) _VersionInfo(ctx context.Context, sel ast.SelectionSet, obj *model.VersionInfo) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, versionInfoImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("VersionInfo")
+		case "name":
+
+			out.Values[i] = ec._VersionInfo_name(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "version":
+
+			out.Values[i] = ec._VersionInfo_version(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "commit":
+
+			out.Values[i] = ec._VersionInfo_commit(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "date":
+
+			out.Values[i] = ec._VersionInfo_date(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "command":
+
+			out.Values[i] = ec._VersionInfo_command(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "goVersion":
+
+			out.Values[i] = ec._VersionInfo_goVersion(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "os":
+
+			out.Values[i] = ec._VersionInfo_os(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "arch":
+
+			out.Values[i] = ec._VersionInfo_arch(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "links":
+
+			out.Values[i] = ec._VersionInfo_links(ctx, field, obj)
+
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3490,6 +4304,16 @@ func (ec *executionContext) marshalNInt2ᚖint64(ctx context.Context, sel ast.Se
 	return res
 }
 
+func (ec *executionContext) marshalNLink2ᚖaiisxᚗcomᚋsrcᚋdatabaseᚋgraphqlᚋgraphᚋmodelᚐLink(ctx context.Context, sel ast.SelectionSet, v *model.Link) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Link(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {
 	res, err := graphql.UnmarshalString(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -3539,6 +4363,20 @@ func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel as
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNVersionInfo2aiisxᚗcomᚋsrcᚋdatabaseᚋgraphqlᚋgraphᚋmodelᚐVersionInfo(ctx context.Context, sel ast.SelectionSet, v model.VersionInfo) graphql.Marshaler {
+	return ec._VersionInfo(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNVersionInfo2ᚖaiisxᚗcomᚋsrcᚋdatabaseᚋgraphqlᚋgraphᚋmodelᚐVersionInfo(ctx context.Context, sel ast.SelectionSet, v *model.VersionInfo) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._VersionInfo(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
@@ -3834,6 +4672,53 @@ func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.Sele
 	}
 	res := graphql.MarshalInt(*v)
 	return res
+}
+
+func (ec *executionContext) marshalOLink2ᚕᚖaiisxᚗcomᚋsrcᚋdatabaseᚋgraphqlᚋgraphᚋmodelᚐLinkᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Link) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNLink2ᚖaiisxᚗcomᚋsrcᚋdatabaseᚋgraphqlᚋgraphᚋmodelᚐLink(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v interface{}) (*string, error) {

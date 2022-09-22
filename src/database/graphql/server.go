@@ -4,8 +4,7 @@ import (
 	"net/http"
 	"os"
 
-	"aiisx.com/src/database/graphql/graph"
-	"aiisx.com/src/database/graphql/graph/generated"
+	"aiisx.com/src/database/graphql/graph/resolver"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
@@ -19,7 +18,7 @@ func New() *handler.Server {
 		port = defaultPort
 	}
 
-	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{}}))
+	srv := handler.NewDefaultServer(resolver.NewSchema())
 	srv.AddTransport(transport.Options{})
 	srv.AddTransport(transport.POST{})
 	srv.AddTransport(transport.GET{})

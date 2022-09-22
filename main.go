@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 
+	"aiisx.com/src/config"
 	"aiisx.com/src/database/graphql"
 	"aiisx.com/src/gh"
 	"github.com/99designs/gqlgen/graphql/playground"
@@ -31,7 +32,7 @@ func main() {
 		log.Fatal("Error loading .env file")
 	}
 
-	gin.SetMode(GIN_MODE)
+	gin.SetMode(config.GIN_MODE)
 	r := gin.New()
 
 	logger = log.WithFields(log.Fields{
@@ -40,7 +41,7 @@ func main() {
 
 	ctx := context.Background()
 
-	gh.NewChient(ctx, GITHUB_ACCESS_TOKEN)
+	gh.NewChient(ctx, config.GITHUB_ACCESS_TOKEN)
 	srv := graphql.New()
 	r.GET("/graphql", playgroundHandler())
 	r.POST("/query", func(c *gin.Context) {
@@ -49,7 +50,7 @@ func main() {
 
 	g.Go(func() error {
 		logger.Info("github UserRunner run!")
-		return gh.UserRunner(ctx, GITHUB_USERNAME)
+		return gh.UserRunner(ctx, config.GITHUB_USERNAME)
 	})
 	g.Go(func() error {
 		logger.Info("server run!")

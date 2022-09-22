@@ -1,4 +1,13 @@
+PROJECT := aiisx
+REPO    := aiisx.com
+HASH    := $(shell git rev-parse --short HEAD)
+DATE    := $(shell date)
+TAG     := $(shell git describe --tags --always --abbrev=0 --match="v[0-9]*.[0-9]*.[0-9]*" 2> /dev/null)
+VERSION := $(shell echo "${TAG}" | sed 's/^.//')
 
+
+LDFLAGS_DEV     := -ldflags "-X '${REPO}/src/version.CommitHash=${HASH}' -X '${REPO}/src/version.CompileDate=${DATE}'"
+LDFLAGS_RELEASE := -ldflags "-X '${REPO}/src/version.Version=${VERSION}' -X '${REPO}/src/version.CommitHash=${HASH}' -X '${REPO}/src/version.CompileDate=${DATE}'"
 
 
 node-fetch:
@@ -14,3 +23,23 @@ node-fetch:
 node-debug:
 	cd src/public && \
 		yarn dev
+
+
+
+.PHONY: build
+build:
+	#
+	# ################################################################################
+	# >>> TARGET: build
+	# ################################################################################
+	#
+	go build ${LDFLAGS_RELEASE}
+
+.PHONY: run
+run:
+	#
+	# ################################################################################
+	# >>> TARGET: run
+	# ################################################################################
+	#
+	go run main.go ${LDFLAGS_DEV}
