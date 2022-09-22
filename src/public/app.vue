@@ -1,5 +1,10 @@
 <script setup lang="ts">
+  import { useBaseState } from "@/stores/state";
 import { darkTheme } from "naive-ui";
+const state = useBaseState();
+
+useAsyncData(()=>state.getBaseData())
+
 </script>
 
 <template>

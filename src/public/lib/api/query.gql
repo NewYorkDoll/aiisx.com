@@ -1,0 +1,11 @@
+query base {
+        githubUser {
+        login
+        name
+        avatarURL
+        bio
+        email
+        location
+        htmlurl
+    }
+}

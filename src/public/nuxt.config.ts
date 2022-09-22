@@ -3,8 +3,8 @@ import Components from "unplugin-vue-components/vite";
 import { NaiveUiResolver } from "unplugin-vue-components/resolvers";
 import IconsResolver from "unplugin-icons/resolver";
 import Icons from "unplugin-icons/vite";
-import UnoCSS from 'unocss'
-import UnocssIcons from '@unocss/preset-icons'
+import UnoCSS from "unocss";
+import UnocssIcons from "@unocss/preset-icons";
 // https://v3.nuxtjs.org/api/configuration/nuxt.config
 export default defineNuxtConfig({
   typescript: {
@@ -12,7 +12,8 @@ export default defineNuxtConfig({
   },
   buildModules: ["@nuxtjs/tailwindcss"],
   modules: [
-    '@unocss/nuxt',
+    "@unocss/nuxt",
+    "nuxt-graphql-client",
     [
       "@pinia/nuxt",
       {
@@ -25,6 +26,11 @@ export default defineNuxtConfig({
       },
     ],
   ],
+  runtimeConfig: {
+    public: {
+      GQL_HOST: "http://localhost:8080/query", // overwritten by process.env.GQL_HOST
+    },
+  },
   unocss: {
     // presets
     uno: false, // enabled "@unocss/preset-uno"
@@ -33,7 +39,7 @@ export default defineNuxtConfig({
     // core options
     shortcuts: [],
     rules: [],
-},
+  },
   css: ["@/assets/css/main.css"],
   build: {
     transpile:
@@ -59,31 +65,15 @@ export default defineNuxtConfig({
     plugins: [
       AutoImport({
         imports: ["vue", "@vueuse/core"],
-        // resolvers: [
-        //   IconsResolver({
-        //     componentPrefix: "icon",
-        //     enabledCollections: ["mdi", "logos"],
-        //   }),
-        // ],
         eslintrc: {
           enabled: true,
         },
       }),
-      // Icons({
-      //   autoInstall: true,
-      //   defaultClass: "icon",
-      // }),
       Components({
         dts: true,
         directives: true,
         directoryAsNamespace: false,
-        resolvers: [
-          NaiveUiResolver(),
-          // IconsResolver({
-          //   componentPrefix: "i",
-          //   enabledCollections: ["mdi", "logos"],
-          // }),
-        ],
+        resolvers: [NaiveUiResolver()],
       }),
     ],
   },

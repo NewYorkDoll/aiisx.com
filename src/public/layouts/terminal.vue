@@ -81,20 +81,20 @@ const state = useBaseState();
             <n-tooltip trigger="hover">
               <template #trigger>
                 <a class="px-2 transition bg-blue-600 rounded-br-sm hover:bg-blue-800 hover:text-current"
-                  style="color: white !important" :href="state.base?.githubUser.htmlurl">
+                  style="color: white !important" :href="state.base?.githubUser.htmlurl!">
                   <n-icon class="align-middle mt-[-3px] mr-[-7px]">
                     <div class="i-mdi-github"></div>
 
                   </n-icon>
-                  {{ state.base?.githubUser.dio }}
+                  {{ state.base?.githubUser.name }}
                 </a>
               </template>
               <p>
                 <n-icon class="align-middle">
                   <div class="i-mdi-github"></div>
                 </n-icon>
-                {{ state.base?.githubUser.name }} &middot;
-                {{ state.base?.githubUser.dio }}
+                {{ state.base?.githubUser.bio }} &middot;
+                {{ state.base?.githubUser.name }}
               </p>
             </n-tooltip>
           </span>

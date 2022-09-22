@@ -1,10 +1,5 @@
-export interface BaseQuery {
-  githubUser: {
-    htmlurl: string;
-    name: string;
-    dio: string;
-  };
-}
+import { BaseQuery } from "~~/.nuxt/gql-sdk";
+
 export interface History {
   title: string;
   path: string;
@@ -18,13 +13,7 @@ export interface State {
 }
 export const useBaseState = defineStore("state", {
   state: (): State => ({
-    base: {
-      githubUser: {
-        htmlurl: "https://github.com/NewYorkDoll",
-        name: "aiisx",
-        dio: "NewYorkDoll",
-      },
-    },
+    base: null,
     history: [],
     sidebarCollapsed: false,
   }),
@@ -43,6 +32,10 @@ export const useBaseState = defineStore("state", {
       }
 
       this.history.push(item);
+    },
+    async getBaseData() {
+      const { data } = await useAsyncGql("base");
+      this.base = data.value;
     },
   },
 });

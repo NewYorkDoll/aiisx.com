@@ -5,6 +5,7 @@ import (
 
 	"aiisx.com/src/database/graphql"
 	"aiisx.com/src/gh"
+	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/apex/log"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -15,6 +16,14 @@ var (
 	logger log.Interface
 	g      errgroup.Group
 )
+
+func playgroundHandler() gin.HandlerFunc {
+	h := playground.Handler("GraphQL playground", "/query")
+
+	return func(c *gin.Context) {
+		h.ServeHTTP(c.Writer, c.Request)
+	}
+}
 
 func main() {
 	err := godotenv.Load()
@@ -33,7 +42,8 @@ func main() {
 
 	gh.NewChient(ctx, GITHUB_ACCESS_TOKEN)
 	srv := graphql.New()
-	r.Any("/graphql", func(c *gin.Context) {
+	r.GET("/graphql", playgroundHandler())
+	r.POST("/query", func(c *gin.Context) {
 		srv.ServeHTTP(c.Writer, c.Request)
 	})
 
