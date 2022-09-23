@@ -25,6 +25,15 @@ node-debug:
 		yarn dev
 
 
+.PHONY:
+node-build:
+	cd src/public && \
+		yarn build
+
+.PHONY:
+node-preview:
+	cd src/public && \
+		yarn preview
 
 .PHONY: build
 build:

@@ -13,7 +13,7 @@
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "[vue]": {
-    "editor.defaultFormatter": "rvest.vs-code-prettier-eslint"
+    "editor.defaultFormatter": "Vue.volar"
   },
   "[markdown]": {
     "editor.wordWrap": "on",

@@ -39,21 +39,17 @@ const codingStats = computed(() => {
 
 
 const eventCount = ref<number>(0);
+const eventCountChange = (e: number) => {
+  eventCount.value = e
+}
 </script>
 <template>
-    <NuxtLayout name="terminal">
-      <EventsRender
-    class="relative w-full h-full overflow-x-hidden grow basis-0"
-    @event-count="(e) => (eventCount = e)"/>
+  <NuxtLayout name="terminal">
+    <EventsRender class="relative w-full h-full overflow-x-hidden grow basis-0" @event-count="eventCountChange" />
 
-      <template #footer>
-      <n-popover
-        placement="top-start"
-        :width="250"
-        raw
-        :show-arrow="false"
-        class="px-2 py-1 rounded border border-solid border-zinc-700 shadow-none !m-0"
-      >
+    <template #footer>
+      <n-popover placement="top-start" :width="250" raw :show-arrow="false"
+        class="px-2 py-1 rounded border border-solid border-zinc-700 shadow-none !m-0">
         <template #trigger>
           <span class="bar-item misc">
             <n-icon class="mr-1 align-middle text-violet-400">
@@ -65,30 +61,25 @@ const eventCount = ref<number>(0);
 
         <p class="text-violet-400">last {{ state.base!.codingStats.calculatedDays }} day coding stats</p>
 
-        <div
-          v-for="stat in codingStats"
-          :key="stat.language"
-          class="flex flex-row items-center flex-auto"
-        >
+        <div v-for="stat in codingStats" :key="stat.language" class="flex flex-row items-center flex-auto">
           <div class="text-right shrink-0 mr-[1ch]" :style="{ width: stat.titleLength + 'ch' }">
             {{ stat.language }}
           </div>
 
           <div class="w-full rounded bg-zinc-900">
-            <div
-              class="h-2 rounded bg-gradient-to-r from-fuchsia-600 to-pink-600"
-              :style="{ width: stat.percentage + '%' }"
-            />
+            <div class="h-2 rounded bg-gradient-to-r from-fuchsia-600 to-pink-600"
+              :style="{ width: stat.percentage + '%' }" />
           </div>
           <div class="shrink-0 ml-[1ch] w-[3ch]">{{ stat.percentage }}%</div>
         </div>
       </n-popover>
 
       <span class="ml-auto" />
-
-      <span v-if="eventCount > 0" class="bar-item misc"> ln:{{ eventCount }} </span>
+      <ClientOnly>
+        <span v-if="eventCount > 0" class="bar-item misc"> ln:{{ eventCount }} </span>
+      </ClientOnly>
     </template>
-    </NuxtLayout>
+  </NuxtLayout>
 
 
 </template>

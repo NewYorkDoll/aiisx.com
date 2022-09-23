@@ -6,6 +6,13 @@ import (
 	"time"
 )
 
+type GithubLicense struct {
+	Key     string  `json:"key"`
+	Name    string  `json:"name"`
+	SpdxID  *string `json:"spdxId"`
+	HTMLURL string  `json:"htmlURL"`
+}
+
 type Link struct {
 	Name string `json:"name"`
 	URL  string `json:"url"`

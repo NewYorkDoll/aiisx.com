@@ -1,12 +1,8 @@
-// Copyright (c) Liam Stanley <me@liamstanley.io>. All rights reserved. Use
-// of this source code is governed by the MIT license that can be found in
-// the LICENSE file.
-
 package resolver
 
-//go:generate go run github.com/99designs/gqlgen generate
 import (
 	"aiisx.com/src/database/graphql/graph/generated"
+	"aiisx.com/src/ent"
 	"aiisx.com/src/models"
 	"github.com/99designs/gqlgen/graphql"
 )
@@ -21,7 +17,7 @@ type Resolver struct {
 }
 
 // NewSchema creates a graphql executable schema.
-func NewSchema() graphql.ExecutableSchema {
+func NewSchema(client *ent.Client) graphql.ExecutableSchema {
 	return generated.NewExecutableSchema(generated.Config{
 		Resolvers: &Resolver{},
 	})

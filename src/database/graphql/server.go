@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"aiisx.com/src/database/graphql/graph/resolver"
+	"aiisx.com/src/ent"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
@@ -12,13 +13,15 @@ import (
 
 const defaultPort = "8888"
 
-func New() *handler.Server {
+func New(db *ent.Client) *handler.Server {
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = defaultPort
 	}
 
-	srv := handler.NewDefaultServer(resolver.NewSchema())
+	srv := handler.NewDefaultServer(resolver.NewSchema(db))
+	srv.AroundOperations(injectClient(db))
+
 	srv.AddTransport(transport.Options{})
 	srv.AddTransport(transport.POST{})
 	srv.AddTransport(transport.GET{})

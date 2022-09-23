@@ -36,8 +36,4 @@ func (r *queryResolver) GithubUser(ctx context.Context) (*github.User, error) {
 // GithubUser returns generated.GithubUserResolver implementation.
 func (r *Resolver) GithubUser() generated.GithubUserResolver { return &githubUserResolver{r} }
 
-// Query returns generated.QueryResolver implementation.
-func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
-
 type githubUserResolver struct{ *Resolver }
-type queryResolver struct{ *Resolver }

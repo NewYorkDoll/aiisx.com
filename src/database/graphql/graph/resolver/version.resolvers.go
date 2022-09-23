@@ -22,7 +22,7 @@ func (r *queryResolver) Version(ctx context.Context) (*model.VersionInfo, error)
 		URL:  "//aiisx.com"}
 	build, ok := debug.ReadBuildInfo()
 	links = append(links, link)
-	versionINfo := &model.VersionInfo{
+	versionInfo := &model.VersionInfo{
 		Name:      "",
 		Version:   version.Version,
 		Commit:    version.CommitHash,
@@ -34,8 +34,8 @@ func (r *queryResolver) Version(ctx context.Context) (*model.VersionInfo, error)
 		Links:     links,
 	}
 	if ok {
-		versionINfo.Name = build.Main.Path
+		versionInfo.Name = build.Main.Path
 	}
 
-	return versionINfo, nil
+	return versionInfo, nil
 }

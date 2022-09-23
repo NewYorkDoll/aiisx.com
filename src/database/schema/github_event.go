@@ -1,8 +1,10 @@
 package schema
 
 import (
+	"aiisx.com/src/ent/privacy"
 	"entgo.io/contrib/entgql"
 	"entgo.io/ent"
+	"entgo.io/ent/schema"
 	"entgo.io/ent/schema/field"
 	"github.com/google/go-github/v47/github"
 )
@@ -32,5 +34,24 @@ func (GithubEvent) Fields() []ent.Field {
 		),
 		field.JSON("repo", &github.Repository{}).Annotations(entgql.Type("GithubEventRepo")),
 		field.JSON("payload", map[string]any{}).Annotations(entgql.Type("Map")),
+	}
+}
+
+func (GithubEvent) Policy() ent.Policy {
+	return privacy.Policy{
+		Mutation: privacy.MutationPolicy{
+			privacy.AlwaysDenyRule(),
+		},
+		Query: privacy.QueryPolicy{
+			AllowPublicOnly(),
+			privacy.AlwaysAllowRule(),
+		},
+	}
+}
+
+func (GithubEvent) Annotations() []schema.Annotation {
+	return []schema.Annotation{
+		entgql.RelayConnection(),
+		entgql.QueryField(),
 	}
 }

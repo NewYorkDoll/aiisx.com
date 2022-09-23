@@ -9,8 +9,9 @@ import (
 )
 
 var (
-	Client     *github.Client
-	clientOnce sync.Once
+	Client      *github.Client
+	clientOnce  sync.Once
+	SyncOnStart = true
 )
 
 func NewChient(ctx context.Context, token string) {

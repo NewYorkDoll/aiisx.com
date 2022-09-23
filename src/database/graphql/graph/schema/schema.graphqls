@@ -1,33 +1,38 @@
 scalar Time
-
-
-
-
-
-
-
-
+scalar Map
 
 type GithubUser {
-    id: Int!
-    login: String!
-    name: String
-    avatarURL: String!
-    email: String
-    location: String
-    bio: String
-    htmlurl: String
-    publicRepos: Int
-    followers: Int
-    following: Int
-    createdAt: Timestamp
-    updatedAt: Timestamp
+  id: Int!
+  login: String!
+  name: String
+  avatarURL: String!
+  email: String
+  location: String
+  bio: String
+  htmlurl: String
+  publicRepos: Int
+  followers: Int
+  following: Int
+  createdAt: Timestamp
+  updatedAt: Timestamp
+}
+type GithubEventRepo {
+  id: Int!
+  name: String!
+  url: String!
+}
+
+type GithubLicense {
+  key: String!
+  name: String!
+  spdxId: String
+  htmlURL: String!
 }
 
 type Timestamp {
-    Time: Time!
+  Time: Time!
 }
 
-type Query {
-    githubUser: GithubUser!
+extend type Query {
+  githubUser: GithubUser!
 }
