@@ -4,6 +4,9 @@ import { vInfiniteScroll } from "@vueuse/components";
 import EventItemPush from "./item/push.vue"
 import EventItemCreate from "./item/create.vue"
 import EventItemFork from "./item/fork.vue"
+import { _AsyncData } from "nuxt/dist/app/composables/asyncData";
+import { GithubEventNode } from "@/lib/api/api";
+import { GetEventsQuery } from "~~/.nuxt/gql-sdk";
 
 const eventMap: { [name: string]: any } = {
   "CreateEvent": EventItemCreate,
@@ -13,49 +16,44 @@ const eventMap: { [name: string]: any } = {
 
 
 
+const fetched = ref<GithubEventNode[]>([]);
+
+const pushData = (val: GetEventsQuery) => {
+  const { githubevents } = val
+  hasNextPage.value = githubevents.pageInfo.hasNextPage
+  nextCursor.value = githubevents.pageInfo.endCursor
+  fetched.value = [...fetched.value, ...githubevents.edges!.map((item) => item?.node!)]
+  emit("eventCount", fetched.value.length)
+}
+
 const emit = defineEmits<{
   (e: "eventCount", value: number): void;
 }>();
 
 const hasNextPage = ref(true);
-const cursor = ref<string>("");
-const nextCursor = ref<string>("");
+const cursor = ref<string>();
+const nextCursor = ref<string>();
 
 const scrollContainer = ref<HTMLElement | null>(null);
 
-function fetchEvents() {
-  console.log("fetchEvents");
-
+async function fetchEvents() {
   if (!hasNextPage.value) return;
   cursor.value = nextCursor.value;
+  const events = await useAsyncGql("getEvents", {
+    count: 15,
+    cursor: cursor.value
+  })
+  if (events.data.value) {
+    pushData(events.data.value)
+  }
 }
 
-const events = await useAsyncGql("getEvents")
-const { githubevents } = events.data.value!
-const edges = githubevents.edges!.map((i) => i!.node!)
-type node = typeof edges
 
-const fetched = ref<node>([]);
-
-watch(() => events, (val) => {
-  if (!val.data.value) return
-  const { githubevents } = val.data.value!
-  hasNextPage.value = githubevents.pageInfo.hasNextPage
-  nextCursor.value = githubevents.pageInfo.endCursor
-  fetched.value = [...fetched.value, ...githubevents.edges!.map((item) => item?.node!)]
-  emit("eventCount", fetched.value.length)
-  setTimeout(() => {
-    if (
-      hasNextPage.value &&
-      scrollContainer.value!.scrollHeight <=
-      scrollContainer.value!.scrollTop + scrollContainer.value!.clientHeight
-    ) {
-      fetchEvents()
-    }
-  }, 300)
-}, {
-  immediate: true
+onMounted(() => {
+  fetchEvents()
 })
+
+
 
 </script>
 
@@ -67,9 +65,12 @@ watch(() => events, (val) => {
         <a :href="e.actor.login" target="_blank">
           <n-avatar round :size="15" :src="e.actor.avatarURL" class="mr-1 align-middle" />
         </a>
-        <client-only>
-          <component :is="eventMap[e.eventType]" :event="e" class="flex items-center gap-2 truncate grow" />
-        </client-only>
+        <div class="flex items-center gap-2 truncate grow">
+          <!-- <client-only fallbackTag="div"> -->
+          <component :is="eventMap[e.eventType]" :event="e" />
+          <!-- </client-only> -->
+        </div>
+
         <div class="flex-none">
           <n-popover trigger="hover" style="padding: 2px 6px" :to="false" placement="left">
             <template #trigger>

@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"net/http"
+	"net/http/httputil"
 
 	"aiisx.com/src/config"
 	"aiisx.com/src/database"
@@ -58,7 +60,8 @@ func main() {
 
 	// graphql服务
 	srv := graphql.New(db)
-	r.GET("/graphql", playgroundHandler())
+	r.GET("/*id", ReverseProxy())
+	// r.GET("/graphql", playgroundHandler())
 	r.POST("/query", func(c *gin.Context) {
 		srv.ServeHTTP(c.Writer, c.Request)
 	})
@@ -90,5 +93,20 @@ func main() {
 	})
 	if e := g.Wait(); e != nil {
 		log.Fatal(e.Error())
+	}
+}
+
+func ReverseProxy() gin.HandlerFunc {
+
+	target := "localhost:3000"
+
+	return func(c *gin.Context) {
+		director := func(req *http.Request) {
+			req.URL.Scheme = "http"
+			req.URL.Host = target
+			req.Host = target
+		}
+		proxy := &httputil.ReverseProxy{Director: director}
+		proxy.ServeHTTP(c.Writer, c.Request)
 	}
 }

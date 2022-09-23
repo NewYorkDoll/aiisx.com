@@ -1,7 +1,8 @@
-<script setup lang="ts">
+<script setup lang="ts">import { GithubEventNode } from '~~/lib/api/api';
+
 
 const props = defineProps<{
-    event: any
+    event: GithubEventNode
 }>()
 
 const repo = ref(props.event.repo)
