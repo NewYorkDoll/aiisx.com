@@ -30,7 +30,7 @@ func init() {
 	GITHUB_USERID, _ = strconv.Atoi(os.Getenv("GITHUB_USERID"))
 	Github.ClientID = os.Getenv("GITHUB_ClientID")
 	Github.ClientSecret = os.Getenv("GITHUB_ClientSecret")
-	HTTP.BaseURL = "http://localhost:8080"
+	HTTP.BaseURL = os.Getenv("BaseURL")
 	WAKAPI_URL = os.Getenv("WAKAPI_URL")
 	WAKAPI_KEY = os.Getenv("WAKAPI_KEY")
 	Database.URL = os.Getenv("DATABASE_URL")

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httputil"
 
@@ -17,8 +18,10 @@ import (
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/apex/log"
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/securecookie"
 	"github.com/joho/godotenv"
 	"github.com/markbates/goth"
+	"github.com/markbates/goth/gothic"
 	"github.com/markbates/goth/providers/github"
 	"golang.org/x/sync/errgroup"
 )
@@ -55,9 +58,16 @@ func main() {
 	ctx = ent.NewContext(log.NewContext(context.Background(), logger), db)
 	database.Migrate(ctx, logger)
 
+	auth := auth.NewAuthHandler[ent.User, int](
+		database.NewAuthService(db, config.GITHUB_USERID),
+		securecookie.GenerateRandomKey(16),
+		securecookie.GenerateRandomKey(16),
+	)
+
 	// 模式设置
 	gin.SetMode(config.GIN_MODE)
 	r = gin.New()
+	r.Use(auth.AddToContext(ctx))
 	goth.UseProviders(
 		github.New(
 			config.Github.ClientID,
@@ -65,6 +75,21 @@ func main() {
 			config.HTTP.BaseURL+"/-/auth/providers/github/callback",
 		),
 	)
+	r.GET("/-/auth/providers/github/callback", func(ctx *gin.Context) {
+		provider := "github"
+		ctx.Request = contextWithProviderName(ctx, provider)
+		if gothUser, err := gothic.CompleteUserAuth(ctx.Writer, ctx.Request); err == nil {
+			id, err := auth.Auth.Set(ctx, &gothUser)
+			if err != nil {
+				logger.Error(err.Error())
+				return
+			}
+			gothic.StoreInSession("_auth", fmt.Sprintf("%v", id), ctx.Request, ctx.Writer)
+			ctx.Redirect(http.StatusMovedPermanently, "/")
+		} else {
+			gothic.BeginAuthHandler(ctx.Writer, ctx.Request)
+		}
+	})
 	gh.NewChient(ctx, config.GITHUB_ACCESS_TOKEN)
 	// graphql服务
 	srv := graphql.New(db)
@@ -73,13 +98,29 @@ func main() {
 			"message": "hello /-/",
 		})
 	})
-
+	r.GET("/auth", func(ctx *gin.Context) {
+		provider := "github"
+		ctx.Request = contextWithProviderName(ctx, provider)
+		gothic.BeginAuthHandler(ctx.Writer, ctx.Request)
+	})
+	r.GET("/-/auth/logout", func(ctx *gin.Context) {
+		provider := "github"
+		ctx.Request = contextWithProviderName(ctx, provider)
+		err := gothic.Logout(ctx.Writer, ctx.Request)
+		if err != nil {
+			ctx.JSON(http.StatusFound, gin.H{
+				"message": err,
+			})
+		}
+		ctx.Redirect(http.StatusMovedPermanently, "/")
+	})
 	r.GET("/", ReverseProxy())
 	r.GET("/posts", ReverseProxy())
 	r.GET("/repost", ReverseProxy())
 	r.GET("/admin/*id", ReverseProxy())
 	r.GET("/_nuxt/*id", ReverseProxy1())
 	r.GET("/graphql", playgroundHandler())
+
 	r.POST("/query", func(c *gin.Context) {
 		srv.ServeHTTP(c.Writer, c.Request)
 	})
@@ -96,11 +137,6 @@ func main() {
 	g.Go(func() error {
 		logger.Info("github UserRunner run!")
 		err := gh.UserRunner(ctx, config.GITHUB_USERNAME)
-		auth.NewAuthHandler[ent.User, int](
-			database.NewAuthService(db, config.GITHUB_USERID),
-			"",
-			"",
-		)
 		return err
 	})
 
@@ -148,4 +184,8 @@ func ReverseProxy1() gin.HandlerFunc {
 		proxy := &httputil.ReverseProxy{Director: director}
 		proxy.ServeHTTP(c.Writer, c.Request)
 	}
+}
+
+func contextWithProviderName(c *gin.Context, provider string) *http.Request {
+	return c.Request.WithContext(context.WithValue(c.Request.Context(), "provider", provider))
 }
