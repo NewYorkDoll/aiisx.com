@@ -45,6 +45,21 @@ func (r *queryResolver) Githubrepositories(ctx context.Context, after *ent.Curso
 	panic(fmt.Errorf("not implemented: Githubrepositories - githubrepositories"))
 }
 
+// Labels is the resolver for the labels field.
+func (r *queryResolver) Labels(ctx context.Context, after *ent.Cursor, first *int, before *ent.Cursor, last *int, where *ent.LabelWhereInput) (*ent.LabelConnection, error) {
+	panic(fmt.Errorf("not implemented: Labels - labels"))
+}
+
+// Posts is the resolver for the posts field.
+func (r *queryResolver) Posts(ctx context.Context, after *ent.Cursor, first *int, before *ent.Cursor, last *int, orderBy *ent.PostOrder, where *ent.PostWhereInput) (*ent.PostConnection, error) {
+	panic(fmt.Errorf("not implemented: Posts - posts"))
+}
+
+// Users is the resolver for the users field.
+func (r *queryResolver) Users(ctx context.Context, after *ent.Cursor, first *int, before *ent.Cursor, last *int, orderBy *ent.UserOrder, where *ent.UserWhereInput) (*ent.UserConnection, error) {
+	panic(fmt.Errorf("not implemented: Users - users"))
+}
+
 // GithubRepository returns generated.GithubRepositoryResolver implementation.
 func (r *Resolver) GithubRepository() generated.GithubRepositoryResolver {
 	return &githubRepositoryResolver{r}
@@ -56,4 +71,10 @@ func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 type githubRepositoryResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//   - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//     it when you're done.
+//   - You have helper methods in this file. Move them out to keep these resolver files clean.
 type githubEventResolver struct{ *Resolver }
