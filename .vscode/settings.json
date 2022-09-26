@@ -1,7 +1,7 @@
 {
   "editor.formatOnSave": true,
-  "files.associations": {
-    "*/**/*.css": "postcss"
+  "emmet.includeLanguages": {
+    "postcss": "css"
   },
   "[css]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
@@ -13,7 +13,7 @@
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "[vue]": {
-    "editor.defaultFormatter": "Vue.volar"
+    "editor.defaultFormatter": "Wscats.vue"
   },
   "[markdown]": {
     "editor.wordWrap": "on",
