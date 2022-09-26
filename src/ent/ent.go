@@ -10,6 +10,8 @@ import (
 	"aiisx.com/src/ent/githubevent"
 	"aiisx.com/src/ent/githubrepository"
 	"aiisx.com/src/ent/label"
+	"aiisx.com/src/ent/post"
+	"aiisx.com/src/ent/user"
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -36,6 +38,8 @@ func columnChecker(table string) func(string) error {
 		githubevent.Table:      githubevent.ValidColumn,
 		githubrepository.Table: githubrepository.ValidColumn,
 		label.Table:            label.ValidColumn,
+		post.Table:             post.ValidColumn,
+		user.Table:             user.ValidColumn,
 	}
 	check, ok := checks[table]
 	if !ok {

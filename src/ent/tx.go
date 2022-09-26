@@ -18,6 +18,10 @@ type Tx struct {
 	GithubRepository *GithubRepositoryClient
 	// Label is the client for interacting with the Label builders.
 	Label *LabelClient
+	// Post is the client for interacting with the Post builders.
+	Post *PostClient
+	// User is the client for interacting with the User builders.
+	User *UserClient
 
 	// lazily loaded.
 	client     *Client
@@ -156,6 +160,8 @@ func (tx *Tx) init() {
 	tx.GithubEvent = NewGithubEventClient(tx.config)
 	tx.GithubRepository = NewGithubRepositoryClient(tx.config)
 	tx.Label = NewLabelClient(tx.config)
+	tx.Post = NewPostClient(tx.config)
+	tx.User = NewUserClient(tx.config)
 }
 
 // txDriver wraps the given dialect.Tx with a nop dialect.Driver implementation.

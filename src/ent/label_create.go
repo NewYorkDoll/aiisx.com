@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"aiisx.com/src/ent/label"
+	"aiisx.com/src/ent/post"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
@@ -19,6 +20,21 @@ type LabelCreate struct {
 	mutation *LabelMutation
 	hooks    []Hook
 	conflict []sql.ConflictOption
+}
+
+// AddPostIDs adds the "posts" edge to the Post entity by IDs.
+func (lc *LabelCreate) AddPostIDs(ids ...int) *LabelCreate {
+	lc.mutation.AddPostIDs(ids...)
+	return lc
+}
+
+// AddPosts adds the "posts" edges to the Post entity.
+func (lc *LabelCreate) AddPosts(p ...*Post) *LabelCreate {
+	ids := make([]int, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return lc.AddPostIDs(ids...)
 }
 
 // Mutation returns the LabelMutation object of the builder.
@@ -125,6 +141,25 @@ func (lc *LabelCreate) createSpec() (*Label, *sqlgraph.CreateSpec) {
 		}
 	)
 	_spec.OnConflict = lc.conflict
+	if nodes := lc.mutation.PostsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   label.PostsTable,
+			Columns: label.PostsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: post.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	return _node, _spec
 }
 

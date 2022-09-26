@@ -15,6 +15,31 @@ type Label struct {
 	config
 	// ID of the ent.
 	ID int `json:"id,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the LabelQuery when eager-loading is set.
+	Edges LabelEdges `json:"edges"`
+}
+
+// LabelEdges holds the relations/edges for other nodes in the graph.
+type LabelEdges struct {
+	// Posts holds the value of the posts edge.
+	Posts []*Post `json:"posts,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+	// totalCount holds the count of the edges above.
+	totalCount [1]map[string]int
+
+	namedPosts map[string][]*Post
+}
+
+// PostsOrErr returns the Posts value or an error if the edge
+// was not loaded in eager-loading.
+func (e LabelEdges) PostsOrErr() ([]*Post, error) {
+	if e.loadedTypes[0] {
+		return e.Posts, nil
+	}
+	return nil, &NotLoadedError{edge: "posts"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -50,6 +75,11 @@ func (l *Label) assignValues(columns []string, values []any) error {
 	return nil
 }
 
+// QueryPosts queries the "posts" edge of the Label entity.
+func (l *Label) QueryPosts() *PostQuery {
+	return (&LabelClient{config: l.config}).QueryPosts(l)
+}
+
 // Update returns a builder for updating this Label.
 // Note that you need to call Label.Unwrap() before calling this method if this Label
 // was returned from a transaction, and the transaction was committed or rolled back.
@@ -75,6 +105,30 @@ func (l *Label) String() string {
 	builder.WriteString(fmt.Sprintf("id=%v", l.ID))
 	builder.WriteByte(')')
 	return builder.String()
+}
+
+// NamedPosts returns the Posts named value or an error if the edge was not
+// loaded in eager-loading with this name.
+func (l *Label) NamedPosts(name string) ([]*Post, error) {
+	if l.Edges.namedPosts == nil {
+		return nil, &NotLoadedError{edge: name}
+	}
+	nodes, ok := l.Edges.namedPosts[name]
+	if !ok {
+		return nil, &NotLoadedError{edge: name}
+	}
+	return nodes, nil
+}
+
+func (l *Label) appendNamedPosts(name string, edges ...*Post) {
+	if l.Edges.namedPosts == nil {
+		l.Edges.namedPosts = make(map[string][]*Post)
+	}
+	if len(edges) == 0 {
+		l.Edges.namedPosts[name] = []*Post{}
+	} else {
+		l.Edges.namedPosts[name] = append(l.Edges.namedPosts[name], edges...)
+	}
 }
 
 // Labels is a parsable slice of Label.

@@ -10,7 +10,7 @@ import (
 )
 
 // / 获取用户信息的轮询间隔
-const userInterval = 10 * time.Minute
+const userInterval = 30 * time.Minute
 
 var User atomic.Pointer[github.User]
 

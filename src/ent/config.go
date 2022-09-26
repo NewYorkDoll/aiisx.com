@@ -27,6 +27,8 @@ type hooks struct {
 	GithubEvent      []ent.Hook
 	GithubRepository []ent.Hook
 	Label            []ent.Hook
+	Post             []ent.Hook
+	User             []ent.Hook
 }
 
 // Options applies the options on the config object.

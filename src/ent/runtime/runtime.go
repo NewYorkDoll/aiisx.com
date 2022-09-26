@@ -4,10 +4,13 @@ package runtime
 
 import (
 	"context"
+	"time"
 
 	"aiisx.com/src/database/schema"
 	"aiisx.com/src/ent/githubevent"
 	"aiisx.com/src/ent/githubrepository"
+	"aiisx.com/src/ent/post"
+	"aiisx.com/src/ent/user"
 
 	"entgo.io/ent"
 	"entgo.io/ent/privacy"
@@ -97,6 +100,111 @@ func init() {
 	githubrepositoryDescArchived := githubrepositoryFields[14].Descriptor()
 	// githubrepository.DefaultArchived holds the default value on creation for the archived field.
 	githubrepository.DefaultArchived = githubrepositoryDescArchived.Default.(bool)
+	postMixin := schema.Post{}.Mixin()
+	postMixinFields0 := postMixin[0].Fields()
+	_ = postMixinFields0
+	postFields := schema.Post{}.Fields()
+	_ = postFields
+	// postDescCreateTime is the schema descriptor for create_time field.
+	postDescCreateTime := postMixinFields0[0].Descriptor()
+	// post.DefaultCreateTime holds the default value on creation for the create_time field.
+	post.DefaultCreateTime = postDescCreateTime.Default.(func() time.Time)
+	// postDescUpdateTime is the schema descriptor for update_time field.
+	postDescUpdateTime := postMixinFields0[1].Descriptor()
+	// post.DefaultUpdateTime holds the default value on creation for the update_time field.
+	post.DefaultUpdateTime = postDescUpdateTime.Default.(func() time.Time)
+	// post.UpdateDefaultUpdateTime holds the default value on update for the update_time field.
+	post.UpdateDefaultUpdateTime = postDescUpdateTime.UpdateDefault.(func() time.Time)
+	// postDescSlug is the schema descriptor for slug field.
+	postDescSlug := postFields[0].Descriptor()
+	// post.SlugValidator is a validator for the "slug" field. It is called by the builders before save.
+	post.SlugValidator = postDescSlug.Validators[0].(func(string) error)
+	// postDescTitle is the schema descriptor for title field.
+	postDescTitle := postFields[1].Descriptor()
+	// post.TitleValidator is a validator for the "title" field. It is called by the builders before save.
+	post.TitleValidator = postDescTitle.Validators[0].(func(string) error)
+	// postDescContent is the schema descriptor for content field.
+	postDescContent := postFields[2].Descriptor()
+	// post.ContentValidator is a validator for the "content" field. It is called by the builders before save.
+	post.ContentValidator = postDescContent.Validators[0].(func(string) error)
+	// postDescContentHTML is the schema descriptor for content_html field.
+	postDescContentHTML := postFields[3].Descriptor()
+	// post.ContentHTMLValidator is a validator for the "content_html" field. It is called by the builders before save.
+	post.ContentHTMLValidator = postDescContentHTML.Validators[0].(func(string) error)
+	// postDescSummary is the schema descriptor for summary field.
+	postDescSummary := postFields[4].Descriptor()
+	// post.SummaryValidator is a validator for the "summary" field. It is called by the builders before save.
+	post.SummaryValidator = postDescSummary.Validators[0].(func(string) error)
+	// postDescPublishedAt is the schema descriptor for published_at field.
+	postDescPublishedAt := postFields[5].Descriptor()
+	// post.DefaultPublishedAt holds the default value on creation for the published_at field.
+	post.DefaultPublishedAt = postDescPublishedAt.Default.(func() time.Time)
+	// postDescViewCount is the schema descriptor for view_count field.
+	postDescViewCount := postFields[6].Descriptor()
+	// post.DefaultViewCount holds the default value on creation for the view_count field.
+	post.DefaultViewCount = postDescViewCount.Default.(int)
+	// post.ViewCountValidator is a validator for the "view_count" field. It is called by the builders before save.
+	post.ViewCountValidator = postDescViewCount.Validators[0].(func(int) error)
+	// postDescPublic is the schema descriptor for public field.
+	postDescPublic := postFields[7].Descriptor()
+	// post.DefaultPublic holds the default value on creation for the public field.
+	post.DefaultPublic = postDescPublic.Default.(bool)
+	userMixin := schema.User{}.Mixin()
+	user.Policy = privacy.NewPolicies(schema.User{})
+	user.Hooks[0] = func(next ent.Mutator) ent.Mutator {
+		return ent.MutateFunc(func(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+			if err := user.Policy.EvalMutation(ctx, m); err != nil {
+				return nil, err
+			}
+			return next.Mutate(ctx, m)
+		})
+	}
+	userMixinFields0 := userMixin[0].Fields()
+	_ = userMixinFields0
+	userFields := schema.User{}.Fields()
+	_ = userFields
+	// userDescCreateTime is the schema descriptor for create_time field.
+	userDescCreateTime := userMixinFields0[0].Descriptor()
+	// user.DefaultCreateTime holds the default value on creation for the create_time field.
+	user.DefaultCreateTime = userDescCreateTime.Default.(func() time.Time)
+	// userDescUpdateTime is the schema descriptor for update_time field.
+	userDescUpdateTime := userMixinFields0[1].Descriptor()
+	// user.DefaultUpdateTime holds the default value on creation for the update_time field.
+	user.DefaultUpdateTime = userDescUpdateTime.Default.(func() time.Time)
+	// user.UpdateDefaultUpdateTime holds the default value on update for the update_time field.
+	user.UpdateDefaultUpdateTime = userDescUpdateTime.UpdateDefault.(func() time.Time)
+	// userDescUserID is the schema descriptor for user_id field.
+	userDescUserID := userFields[0].Descriptor()
+	// user.UserIDValidator is a validator for the "user_id" field. It is called by the builders before save.
+	user.UserIDValidator = userDescUserID.Validators[0].(func(int) error)
+	// userDescLogin is the schema descriptor for login field.
+	userDescLogin := userFields[1].Descriptor()
+	// user.LoginValidator is a validator for the "login" field. It is called by the builders before save.
+	user.LoginValidator = userDescLogin.Validators[0].(func(string) error)
+	// userDescName is the schema descriptor for name field.
+	userDescName := userFields[2].Descriptor()
+	// user.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	user.NameValidator = userDescName.Validators[0].(func(string) error)
+	// userDescAvatarURL is the schema descriptor for avatar_url field.
+	userDescAvatarURL := userFields[3].Descriptor()
+	// user.AvatarURLValidator is a validator for the "avatar_url" field. It is called by the builders before save.
+	user.AvatarURLValidator = userDescAvatarURL.Validators[0].(func(string) error)
+	// userDescHTMLURL is the schema descriptor for html_url field.
+	userDescHTMLURL := userFields[4].Descriptor()
+	// user.HTMLURLValidator is a validator for the "html_url" field. It is called by the builders before save.
+	user.HTMLURLValidator = userDescHTMLURL.Validators[0].(func(string) error)
+	// userDescEmail is the schema descriptor for email field.
+	userDescEmail := userFields[5].Descriptor()
+	// user.EmailValidator is a validator for the "email" field. It is called by the builders before save.
+	user.EmailValidator = userDescEmail.Validators[0].(func(string) error)
+	// userDescLocation is the schema descriptor for location field.
+	userDescLocation := userFields[6].Descriptor()
+	// user.LocationValidator is a validator for the "location" field. It is called by the builders before save.
+	user.LocationValidator = userDescLocation.Validators[0].(func(string) error)
+	// userDescBio is the schema descriptor for bio field.
+	userDescBio := userFields[7].Descriptor()
+	// user.BioValidator is a validator for the "bio" field. It is called by the builders before save.
+	user.BioValidator = userDescBio.Validators[0].(func(string) error)
 }
 
 const (

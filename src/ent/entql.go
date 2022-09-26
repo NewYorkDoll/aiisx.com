@@ -6,6 +6,9 @@ import (
 	"aiisx.com/src/ent/githubevent"
 	"aiisx.com/src/ent/githubrepository"
 	"aiisx.com/src/ent/label"
+	"aiisx.com/src/ent/post"
+	"aiisx.com/src/ent/predicate"
+	"aiisx.com/src/ent/user"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -15,7 +18,7 @@ import (
 
 // schemaGraph holds a representation of ent/schema at runtime.
 var schemaGraph = func() *sqlgraph.Schema {
-	graph := &sqlgraph.Schema{Nodes: make([]*sqlgraph.Node, 3)}
+	graph := &sqlgraph.Schema{Nodes: make([]*sqlgraph.Node, 5)}
 	graph.Nodes[0] = &sqlgraph.Node{
 		NodeSpec: sqlgraph.NodeSpec{
 			Table:   githubevent.Table,
@@ -82,6 +85,100 @@ var schemaGraph = func() *sqlgraph.Schema {
 		Type:   "Label",
 		Fields: map[string]*sqlgraph.FieldSpec{},
 	}
+	graph.Nodes[3] = &sqlgraph.Node{
+		NodeSpec: sqlgraph.NodeSpec{
+			Table:   post.Table,
+			Columns: post.Columns,
+			ID: &sqlgraph.FieldSpec{
+				Type:   field.TypeInt,
+				Column: post.FieldID,
+			},
+		},
+		Type: "Post",
+		Fields: map[string]*sqlgraph.FieldSpec{
+			post.FieldCreateTime:  {Type: field.TypeTime, Column: post.FieldCreateTime},
+			post.FieldUpdateTime:  {Type: field.TypeTime, Column: post.FieldUpdateTime},
+			post.FieldSlug:        {Type: field.TypeString, Column: post.FieldSlug},
+			post.FieldTitle:       {Type: field.TypeString, Column: post.FieldTitle},
+			post.FieldContent:     {Type: field.TypeString, Column: post.FieldContent},
+			post.FieldContentHTML: {Type: field.TypeString, Column: post.FieldContentHTML},
+			post.FieldSummary:     {Type: field.TypeString, Column: post.FieldSummary},
+			post.FieldPublishedAt: {Type: field.TypeTime, Column: post.FieldPublishedAt},
+			post.FieldViewCount:   {Type: field.TypeInt, Column: post.FieldViewCount},
+			post.FieldPublic:      {Type: field.TypeBool, Column: post.FieldPublic},
+		},
+	}
+	graph.Nodes[4] = &sqlgraph.Node{
+		NodeSpec: sqlgraph.NodeSpec{
+			Table:   user.Table,
+			Columns: user.Columns,
+			ID: &sqlgraph.FieldSpec{
+				Type:   field.TypeInt,
+				Column: user.FieldID,
+			},
+		},
+		Type: "User",
+		Fields: map[string]*sqlgraph.FieldSpec{
+			user.FieldCreateTime: {Type: field.TypeTime, Column: user.FieldCreateTime},
+			user.FieldUpdateTime: {Type: field.TypeTime, Column: user.FieldUpdateTime},
+			user.FieldUserID:     {Type: field.TypeInt, Column: user.FieldUserID},
+			user.FieldLogin:      {Type: field.TypeString, Column: user.FieldLogin},
+			user.FieldName:       {Type: field.TypeString, Column: user.FieldName},
+			user.FieldAvatarURL:  {Type: field.TypeString, Column: user.FieldAvatarURL},
+			user.FieldHTMLURL:    {Type: field.TypeString, Column: user.FieldHTMLURL},
+			user.FieldEmail:      {Type: field.TypeString, Column: user.FieldEmail},
+			user.FieldLocation:   {Type: field.TypeString, Column: user.FieldLocation},
+			user.FieldBio:        {Type: field.TypeString, Column: user.FieldBio},
+		},
+	}
+	graph.MustAddE(
+		"posts",
+		&sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   label.PostsTable,
+			Columns: label.PostsPrimaryKey,
+			Bidi:    false,
+		},
+		"Label",
+		"Post",
+	)
+	graph.MustAddE(
+		"author",
+		&sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   post.AuthorTable,
+			Columns: []string{post.AuthorColumn},
+			Bidi:    false,
+		},
+		"Post",
+		"User",
+	)
+	graph.MustAddE(
+		"labels",
+		&sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   post.LabelsTable,
+			Columns: post.LabelsPrimaryKey,
+			Bidi:    false,
+		},
+		"Post",
+		"Label",
+	)
+	graph.MustAddE(
+		"posts",
+		&sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.PostsTable,
+			Columns: []string{user.PostsColumn},
+			Bidi:    false,
+		},
+		"User",
+		"Post",
+	)
 	return graph
 }()
 
@@ -349,4 +446,240 @@ func (f *LabelFilter) Where(p entql.P) {
 // WhereID applies the entql int predicate on the id field.
 func (f *LabelFilter) WhereID(p entql.IntP) {
 	f.Where(p.Field(label.FieldID))
+}
+
+// WhereHasPosts applies a predicate to check if query has an edge posts.
+func (f *LabelFilter) WhereHasPosts() {
+	f.Where(entql.HasEdge("posts"))
+}
+
+// WhereHasPostsWith applies a predicate to check if query has an edge posts with a given conditions (other predicates).
+func (f *LabelFilter) WhereHasPostsWith(preds ...predicate.Post) {
+	f.Where(entql.HasEdgeWith("posts", sqlgraph.WrapFunc(func(s *sql.Selector) {
+		for _, p := range preds {
+			p(s)
+		}
+	})))
+}
+
+// addPredicate implements the predicateAdder interface.
+func (pq *PostQuery) addPredicate(pred func(s *sql.Selector)) {
+	pq.predicates = append(pq.predicates, pred)
+}
+
+// Filter returns a Filter implementation to apply filters on the PostQuery builder.
+func (pq *PostQuery) Filter() *PostFilter {
+	return &PostFilter{config: pq.config, predicateAdder: pq}
+}
+
+// addPredicate implements the predicateAdder interface.
+func (m *PostMutation) addPredicate(pred func(s *sql.Selector)) {
+	m.predicates = append(m.predicates, pred)
+}
+
+// Filter returns an entql.Where implementation to apply filters on the PostMutation builder.
+func (m *PostMutation) Filter() *PostFilter {
+	return &PostFilter{config: m.config, predicateAdder: m}
+}
+
+// PostFilter provides a generic filtering capability at runtime for PostQuery.
+type PostFilter struct {
+	predicateAdder
+	config
+}
+
+// Where applies the entql predicate on the query filter.
+func (f *PostFilter) Where(p entql.P) {
+	f.addPredicate(func(s *sql.Selector) {
+		if err := schemaGraph.EvalP(schemaGraph.Nodes[3].Type, p, s); err != nil {
+			s.AddError(err)
+		}
+	})
+}
+
+// WhereID applies the entql int predicate on the id field.
+func (f *PostFilter) WhereID(p entql.IntP) {
+	f.Where(p.Field(post.FieldID))
+}
+
+// WhereCreateTime applies the entql time.Time predicate on the create_time field.
+func (f *PostFilter) WhereCreateTime(p entql.TimeP) {
+	f.Where(p.Field(post.FieldCreateTime))
+}
+
+// WhereUpdateTime applies the entql time.Time predicate on the update_time field.
+func (f *PostFilter) WhereUpdateTime(p entql.TimeP) {
+	f.Where(p.Field(post.FieldUpdateTime))
+}
+
+// WhereSlug applies the entql string predicate on the slug field.
+func (f *PostFilter) WhereSlug(p entql.StringP) {
+	f.Where(p.Field(post.FieldSlug))
+}
+
+// WhereTitle applies the entql string predicate on the title field.
+func (f *PostFilter) WhereTitle(p entql.StringP) {
+	f.Where(p.Field(post.FieldTitle))
+}
+
+// WhereContent applies the entql string predicate on the content field.
+func (f *PostFilter) WhereContent(p entql.StringP) {
+	f.Where(p.Field(post.FieldContent))
+}
+
+// WhereContentHTML applies the entql string predicate on the content_html field.
+func (f *PostFilter) WhereContentHTML(p entql.StringP) {
+	f.Where(p.Field(post.FieldContentHTML))
+}
+
+// WhereSummary applies the entql string predicate on the summary field.
+func (f *PostFilter) WhereSummary(p entql.StringP) {
+	f.Where(p.Field(post.FieldSummary))
+}
+
+// WherePublishedAt applies the entql time.Time predicate on the published_at field.
+func (f *PostFilter) WherePublishedAt(p entql.TimeP) {
+	f.Where(p.Field(post.FieldPublishedAt))
+}
+
+// WhereViewCount applies the entql int predicate on the view_count field.
+func (f *PostFilter) WhereViewCount(p entql.IntP) {
+	f.Where(p.Field(post.FieldViewCount))
+}
+
+// WherePublic applies the entql bool predicate on the public field.
+func (f *PostFilter) WherePublic(p entql.BoolP) {
+	f.Where(p.Field(post.FieldPublic))
+}
+
+// WhereHasAuthor applies a predicate to check if query has an edge author.
+func (f *PostFilter) WhereHasAuthor() {
+	f.Where(entql.HasEdge("author"))
+}
+
+// WhereHasAuthorWith applies a predicate to check if query has an edge author with a given conditions (other predicates).
+func (f *PostFilter) WhereHasAuthorWith(preds ...predicate.User) {
+	f.Where(entql.HasEdgeWith("author", sqlgraph.WrapFunc(func(s *sql.Selector) {
+		for _, p := range preds {
+			p(s)
+		}
+	})))
+}
+
+// WhereHasLabels applies a predicate to check if query has an edge labels.
+func (f *PostFilter) WhereHasLabels() {
+	f.Where(entql.HasEdge("labels"))
+}
+
+// WhereHasLabelsWith applies a predicate to check if query has an edge labels with a given conditions (other predicates).
+func (f *PostFilter) WhereHasLabelsWith(preds ...predicate.Label) {
+	f.Where(entql.HasEdgeWith("labels", sqlgraph.WrapFunc(func(s *sql.Selector) {
+		for _, p := range preds {
+			p(s)
+		}
+	})))
+}
+
+// addPredicate implements the predicateAdder interface.
+func (uq *UserQuery) addPredicate(pred func(s *sql.Selector)) {
+	uq.predicates = append(uq.predicates, pred)
+}
+
+// Filter returns a Filter implementation to apply filters on the UserQuery builder.
+func (uq *UserQuery) Filter() *UserFilter {
+	return &UserFilter{config: uq.config, predicateAdder: uq}
+}
+
+// addPredicate implements the predicateAdder interface.
+func (m *UserMutation) addPredicate(pred func(s *sql.Selector)) {
+	m.predicates = append(m.predicates, pred)
+}
+
+// Filter returns an entql.Where implementation to apply filters on the UserMutation builder.
+func (m *UserMutation) Filter() *UserFilter {
+	return &UserFilter{config: m.config, predicateAdder: m}
+}
+
+// UserFilter provides a generic filtering capability at runtime for UserQuery.
+type UserFilter struct {
+	predicateAdder
+	config
+}
+
+// Where applies the entql predicate on the query filter.
+func (f *UserFilter) Where(p entql.P) {
+	f.addPredicate(func(s *sql.Selector) {
+		if err := schemaGraph.EvalP(schemaGraph.Nodes[4].Type, p, s); err != nil {
+			s.AddError(err)
+		}
+	})
+}
+
+// WhereID applies the entql int predicate on the id field.
+func (f *UserFilter) WhereID(p entql.IntP) {
+	f.Where(p.Field(user.FieldID))
+}
+
+// WhereCreateTime applies the entql time.Time predicate on the create_time field.
+func (f *UserFilter) WhereCreateTime(p entql.TimeP) {
+	f.Where(p.Field(user.FieldCreateTime))
+}
+
+// WhereUpdateTime applies the entql time.Time predicate on the update_time field.
+func (f *UserFilter) WhereUpdateTime(p entql.TimeP) {
+	f.Where(p.Field(user.FieldUpdateTime))
+}
+
+// WhereUserID applies the entql int predicate on the user_id field.
+func (f *UserFilter) WhereUserID(p entql.IntP) {
+	f.Where(p.Field(user.FieldUserID))
+}
+
+// WhereLogin applies the entql string predicate on the login field.
+func (f *UserFilter) WhereLogin(p entql.StringP) {
+	f.Where(p.Field(user.FieldLogin))
+}
+
+// WhereName applies the entql string predicate on the name field.
+func (f *UserFilter) WhereName(p entql.StringP) {
+	f.Where(p.Field(user.FieldName))
+}
+
+// WhereAvatarURL applies the entql string predicate on the avatar_url field.
+func (f *UserFilter) WhereAvatarURL(p entql.StringP) {
+	f.Where(p.Field(user.FieldAvatarURL))
+}
+
+// WhereHTMLURL applies the entql string predicate on the html_url field.
+func (f *UserFilter) WhereHTMLURL(p entql.StringP) {
+	f.Where(p.Field(user.FieldHTMLURL))
+}
+
+// WhereEmail applies the entql string predicate on the email field.
+func (f *UserFilter) WhereEmail(p entql.StringP) {
+	f.Where(p.Field(user.FieldEmail))
+}
+
+// WhereLocation applies the entql string predicate on the location field.
+func (f *UserFilter) WhereLocation(p entql.StringP) {
+	f.Where(p.Field(user.FieldLocation))
+}
+
+// WhereBio applies the entql string predicate on the bio field.
+func (f *UserFilter) WhereBio(p entql.StringP) {
+	f.Where(p.Field(user.FieldBio))
+}
+
+// WhereHasPosts applies a predicate to check if query has an edge posts.
+func (f *UserFilter) WhereHasPosts() {
+	f.Where(entql.HasEdge("posts"))
+}
+
+// WhereHasPostsWith applies a predicate to check if query has an edge posts with a given conditions (other predicates).
+func (f *UserFilter) WhereHasPostsWith(preds ...predicate.Post) {
+	f.Where(entql.HasEdgeWith("posts", sqlgraph.WrapFunc(func(s *sql.Selector) {
+		for _, p := range preds {
+			p(s)
+		}
+	})))
 }

@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"strconv"
 
 	"aiisx.com/src/models"
 	"github.com/apex/log"
@@ -11,10 +12,13 @@ import (
 var (
 	GIN_MODE            string
 	GITHUB_USERNAME     string
+	GITHUB_USERID       int
 	GITHUB_ACCESS_TOKEN string
 	WAKAPI_URL          string
 	WAKAPI_KEY          string
 	Database            models.ConfigDatabase
+	Github              models.ConfigGithub
+	HTTP                models.ConfigHTTP
 )
 
 func init() {
@@ -23,6 +27,10 @@ func init() {
 	GIN_MODE = os.Getenv("GIN_MODE")
 	GITHUB_ACCESS_TOKEN = os.Getenv("GITHUB_ACCESS_TOKEN")
 	GITHUB_USERNAME = os.Getenv("GITHUB_USERNAME")
+	GITHUB_USERID, _ = strconv.Atoi(os.Getenv("GITHUB_USERID"))
+	Github.ClientID = os.Getenv("GITHUB_ClientID")
+	Github.ClientSecret = os.Getenv("GITHUB_ClientSecret")
+	HTTP.BaseURL = "http://localhost:8080"
 	WAKAPI_URL = os.Getenv("WAKAPI_URL")
 	WAKAPI_KEY = os.Getenv("WAKAPI_KEY")
 	Database.URL = os.Getenv("DATABASE_URL")

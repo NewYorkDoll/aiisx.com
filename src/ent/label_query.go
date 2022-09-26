@@ -4,10 +4,12 @@ package ent
 
 import (
 	"context"
+	"database/sql/driver"
 	"fmt"
 	"math"
 
 	"aiisx.com/src/ent/label"
+	"aiisx.com/src/ent/post"
 	"aiisx.com/src/ent/predicate"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -17,14 +19,16 @@ import (
 // LabelQuery is the builder for querying Label entities.
 type LabelQuery struct {
 	config
-	limit      *int
-	offset     *int
-	unique     *bool
-	order      []OrderFunc
-	fields     []string
-	predicates []predicate.Label
-	modifiers  []func(*sql.Selector)
-	loadTotal  []func(context.Context, []*Label) error
+	limit          *int
+	offset         *int
+	unique         *bool
+	order          []OrderFunc
+	fields         []string
+	predicates     []predicate.Label
+	withPosts      *PostQuery
+	modifiers      []func(*sql.Selector)
+	loadTotal      []func(context.Context, []*Label) error
+	withNamedPosts map[string]*PostQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -59,6 +63,28 @@ func (lq *LabelQuery) Unique(unique bool) *LabelQuery {
 func (lq *LabelQuery) Order(o ...OrderFunc) *LabelQuery {
 	lq.order = append(lq.order, o...)
 	return lq
+}
+
+// QueryPosts chains the current query on the "posts" edge.
+func (lq *LabelQuery) QueryPosts() *PostQuery {
+	query := &PostQuery{config: lq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := lq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := lq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(label.Table, label.FieldID, selector),
+			sqlgraph.To(post.Table, post.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, false, label.PostsTable, label.PostsPrimaryKey...),
+		)
+		fromU = sqlgraph.SetNeighbors(lq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first Label entity from the query.
@@ -242,11 +268,23 @@ func (lq *LabelQuery) Clone() *LabelQuery {
 		offset:     lq.offset,
 		order:      append([]OrderFunc{}, lq.order...),
 		predicates: append([]predicate.Label{}, lq.predicates...),
+		withPosts:  lq.withPosts.Clone(),
 		// clone intermediate query.
 		sql:    lq.sql.Clone(),
 		path:   lq.path,
 		unique: lq.unique,
 	}
+}
+
+// WithPosts tells the query-builder to eager-load the nodes that are connected to
+// the "posts" edge. The optional arguments are used to configure the query builder of the edge.
+func (lq *LabelQuery) WithPosts(opts ...func(*PostQuery)) *LabelQuery {
+	query := &PostQuery{config: lq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	lq.withPosts = query
+	return lq
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -293,8 +331,11 @@ func (lq *LabelQuery) prepareQuery(ctx context.Context) error {
 
 func (lq *LabelQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Label, error) {
 	var (
-		nodes = []*Label{}
-		_spec = lq.querySpec()
+		nodes       = []*Label{}
+		_spec       = lq.querySpec()
+		loadedTypes = [1]bool{
+			lq.withPosts != nil,
+		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Label).scanValues(nil, columns)
@@ -302,6 +343,7 @@ func (lq *LabelQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Label,
 	_spec.Assign = func(columns []string, values []any) error {
 		node := &Label{config: lq.config}
 		nodes = append(nodes, node)
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	if len(lq.modifiers) > 0 {
@@ -316,12 +358,85 @@ func (lq *LabelQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Label,
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := lq.withPosts; query != nil {
+		if err := lq.loadPosts(ctx, query, nodes,
+			func(n *Label) { n.Edges.Posts = []*Post{} },
+			func(n *Label, e *Post) { n.Edges.Posts = append(n.Edges.Posts, e) }); err != nil {
+			return nil, err
+		}
+	}
+	for name, query := range lq.withNamedPosts {
+		if err := lq.loadPosts(ctx, query, nodes,
+			func(n *Label) { n.appendNamedPosts(name) },
+			func(n *Label, e *Post) { n.appendNamedPosts(name, e) }); err != nil {
+			return nil, err
+		}
+	}
 	for i := range lq.loadTotal {
 		if err := lq.loadTotal[i](ctx, nodes); err != nil {
 			return nil, err
 		}
 	}
 	return nodes, nil
+}
+
+func (lq *LabelQuery) loadPosts(ctx context.Context, query *PostQuery, nodes []*Label, init func(*Label), assign func(*Label, *Post)) error {
+	edgeIDs := make([]driver.Value, len(nodes))
+	byID := make(map[int]*Label)
+	nids := make(map[int]map[*Label]struct{})
+	for i, node := range nodes {
+		edgeIDs[i] = node.ID
+		byID[node.ID] = node
+		if init != nil {
+			init(node)
+		}
+	}
+	query.Where(func(s *sql.Selector) {
+		joinT := sql.Table(label.PostsTable)
+		s.Join(joinT).On(s.C(post.FieldID), joinT.C(label.PostsPrimaryKey[1]))
+		s.Where(sql.InValues(joinT.C(label.PostsPrimaryKey[0]), edgeIDs...))
+		columns := s.SelectedColumns()
+		s.Select(joinT.C(label.PostsPrimaryKey[0]))
+		s.AppendSelect(columns...)
+		s.SetDistinct(false)
+	})
+	if err := query.prepareQuery(ctx); err != nil {
+		return err
+	}
+	neighbors, err := query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
+		assign := spec.Assign
+		values := spec.ScanValues
+		spec.ScanValues = func(columns []string) ([]any, error) {
+			values, err := values(columns[1:])
+			if err != nil {
+				return nil, err
+			}
+			return append([]any{new(sql.NullInt64)}, values...), nil
+		}
+		spec.Assign = func(columns []string, values []any) error {
+			outValue := int(values[0].(*sql.NullInt64).Int64)
+			inValue := int(values[1].(*sql.NullInt64).Int64)
+			if nids[inValue] == nil {
+				nids[inValue] = map[*Label]struct{}{byID[outValue]: struct{}{}}
+				return assign(columns[1:], values[1:])
+			}
+			nids[inValue][byID[outValue]] = struct{}{}
+			return nil
+		}
+	})
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected "posts" node returned %v`, n.ID)
+		}
+		for kn := range nodes {
+			assign(kn, n)
+		}
+	}
+	return nil
 }
 
 func (lq *LabelQuery) sqlCount(ctx context.Context) (int, error) {
@@ -422,6 +537,20 @@ func (lq *LabelQuery) sqlQuery(ctx context.Context) *sql.Selector {
 		selector.Limit(*limit)
 	}
 	return selector
+}
+
+// WithNamedPosts tells the query-builder to eager-load the nodes that are connected to the "posts"
+// edge with the given name. The optional arguments are used to configure the query builder of the edge.
+func (lq *LabelQuery) WithNamedPosts(name string, opts ...func(*PostQuery)) *LabelQuery {
+	query := &PostQuery{config: lq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	if lq.withNamedPosts == nil {
+		lq.withNamedPosts = make(map[string]*PostQuery)
+	}
+	lq.withNamedPosts[name] = query
+	return lq
 }
 
 // LabelGroupBy is the group-by builder for Label entities.

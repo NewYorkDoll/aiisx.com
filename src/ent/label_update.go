@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"aiisx.com/src/ent/label"
+	"aiisx.com/src/ent/post"
 	"aiisx.com/src/ent/predicate"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -27,9 +28,45 @@ func (lu *LabelUpdate) Where(ps ...predicate.Label) *LabelUpdate {
 	return lu
 }
 
+// AddPostIDs adds the "posts" edge to the Post entity by IDs.
+func (lu *LabelUpdate) AddPostIDs(ids ...int) *LabelUpdate {
+	lu.mutation.AddPostIDs(ids...)
+	return lu
+}
+
+// AddPosts adds the "posts" edges to the Post entity.
+func (lu *LabelUpdate) AddPosts(p ...*Post) *LabelUpdate {
+	ids := make([]int, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return lu.AddPostIDs(ids...)
+}
+
 // Mutation returns the LabelMutation object of the builder.
 func (lu *LabelUpdate) Mutation() *LabelMutation {
 	return lu.mutation
+}
+
+// ClearPosts clears all "posts" edges to the Post entity.
+func (lu *LabelUpdate) ClearPosts() *LabelUpdate {
+	lu.mutation.ClearPosts()
+	return lu
+}
+
+// RemovePostIDs removes the "posts" edge to Post entities by IDs.
+func (lu *LabelUpdate) RemovePostIDs(ids ...int) *LabelUpdate {
+	lu.mutation.RemovePostIDs(ids...)
+	return lu
+}
+
+// RemovePosts removes "posts" edges to Post entities.
+func (lu *LabelUpdate) RemovePosts(p ...*Post) *LabelUpdate {
+	ids := make([]int, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return lu.RemovePostIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -104,6 +141,60 @@ func (lu *LabelUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			}
 		}
 	}
+	if lu.mutation.PostsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   label.PostsTable,
+			Columns: label.PostsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: post.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := lu.mutation.RemovedPostsIDs(); len(nodes) > 0 && !lu.mutation.PostsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   label.PostsTable,
+			Columns: label.PostsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: post.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := lu.mutation.PostsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   label.PostsTable,
+			Columns: label.PostsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: post.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, lu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{label.Label}
@@ -123,9 +214,45 @@ type LabelUpdateOne struct {
 	mutation *LabelMutation
 }
 
+// AddPostIDs adds the "posts" edge to the Post entity by IDs.
+func (luo *LabelUpdateOne) AddPostIDs(ids ...int) *LabelUpdateOne {
+	luo.mutation.AddPostIDs(ids...)
+	return luo
+}
+
+// AddPosts adds the "posts" edges to the Post entity.
+func (luo *LabelUpdateOne) AddPosts(p ...*Post) *LabelUpdateOne {
+	ids := make([]int, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return luo.AddPostIDs(ids...)
+}
+
 // Mutation returns the LabelMutation object of the builder.
 func (luo *LabelUpdateOne) Mutation() *LabelMutation {
 	return luo.mutation
+}
+
+// ClearPosts clears all "posts" edges to the Post entity.
+func (luo *LabelUpdateOne) ClearPosts() *LabelUpdateOne {
+	luo.mutation.ClearPosts()
+	return luo
+}
+
+// RemovePostIDs removes the "posts" edge to Post entities by IDs.
+func (luo *LabelUpdateOne) RemovePostIDs(ids ...int) *LabelUpdateOne {
+	luo.mutation.RemovePostIDs(ids...)
+	return luo
+}
+
+// RemovePosts removes "posts" edges to Post entities.
+func (luo *LabelUpdateOne) RemovePosts(p ...*Post) *LabelUpdateOne {
+	ids := make([]int, len(p))
+	for i := range p {
+		ids[i] = p[i].ID
+	}
+	return luo.RemovePostIDs(ids...)
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
@@ -229,6 +356,60 @@ func (luo *LabelUpdateOne) sqlSave(ctx context.Context) (_node *Label, err error
 				ps[i](selector)
 			}
 		}
+	}
+	if luo.mutation.PostsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   label.PostsTable,
+			Columns: label.PostsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: post.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := luo.mutation.RemovedPostsIDs(); len(nodes) > 0 && !luo.mutation.PostsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   label.PostsTable,
+			Columns: label.PostsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: post.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := luo.mutation.PostsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   label.PostsTable,
+			Columns: label.PostsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: post.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Label{config: luo.config}
 	_spec.Assign = _node.assignValues

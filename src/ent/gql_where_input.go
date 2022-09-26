@@ -10,7 +10,9 @@ import (
 	"aiisx.com/src/ent/githubevent"
 	"aiisx.com/src/ent/githubrepository"
 	"aiisx.com/src/ent/label"
+	"aiisx.com/src/ent/post"
 	"aiisx.com/src/ent/predicate"
+	"aiisx.com/src/ent/user"
 )
 
 // GithubEventWhereInput represents a where input for filtering GithubEvent queries.
@@ -1127,6 +1129,10 @@ type LabelWhereInput struct {
 	IDGTE   *int  `json:"idGTE,omitempty"`
 	IDLT    *int  `json:"idLT,omitempty"`
 	IDLTE   *int  `json:"idLTE,omitempty"`
+
+	// "posts" edge predicates.
+	HasPosts     *bool             `json:"hasPosts,omitempty"`
+	HasPostsWith []*PostWhereInput `json:"hasPostsWith,omitempty"`
 }
 
 // AddPredicates adds custom predicates to the where input to be used during the filtering phase.
@@ -1225,6 +1231,24 @@ func (i *LabelWhereInput) P() (predicate.Label, error) {
 		predicates = append(predicates, label.IDLTE(*i.IDLTE))
 	}
 
+	if i.HasPosts != nil {
+		p := label.HasPosts()
+		if !*i.HasPosts {
+			p = label.Not(p)
+		}
+		predicates = append(predicates, p)
+	}
+	if len(i.HasPostsWith) > 0 {
+		with := make([]predicate.Post, 0, len(i.HasPostsWith))
+		for _, w := range i.HasPostsWith {
+			p, err := w.P()
+			if err != nil {
+				return nil, fmt.Errorf("%w: field 'HasPostsWith'", err)
+			}
+			with = append(with, p)
+		}
+		predicates = append(predicates, label.HasPostsWith(with...))
+	}
 	switch len(predicates) {
 	case 0:
 		return nil, ErrEmptyLabelWhereInput
@@ -1232,5 +1256,1263 @@ func (i *LabelWhereInput) P() (predicate.Label, error) {
 		return predicates[0], nil
 	default:
 		return label.And(predicates...), nil
+	}
+}
+
+// PostWhereInput represents a where input for filtering Post queries.
+type PostWhereInput struct {
+	Predicates []predicate.Post  `json:"-"`
+	Not        *PostWhereInput   `json:"not,omitempty"`
+	Or         []*PostWhereInput `json:"or,omitempty"`
+	And        []*PostWhereInput `json:"and,omitempty"`
+
+	// "id" field predicates.
+	ID      *int  `json:"id,omitempty"`
+	IDNEQ   *int  `json:"idNEQ,omitempty"`
+	IDIn    []int `json:"idIn,omitempty"`
+	IDNotIn []int `json:"idNotIn,omitempty"`
+	IDGT    *int  `json:"idGT,omitempty"`
+	IDGTE   *int  `json:"idGTE,omitempty"`
+	IDLT    *int  `json:"idLT,omitempty"`
+	IDLTE   *int  `json:"idLTE,omitempty"`
+
+	// "create_time" field predicates.
+	CreateTime      *time.Time  `json:"createTime,omitempty"`
+	CreateTimeNEQ   *time.Time  `json:"createTimeNEQ,omitempty"`
+	CreateTimeIn    []time.Time `json:"createTimeIn,omitempty"`
+	CreateTimeNotIn []time.Time `json:"createTimeNotIn,omitempty"`
+	CreateTimeGT    *time.Time  `json:"createTimeGT,omitempty"`
+	CreateTimeGTE   *time.Time  `json:"createTimeGTE,omitempty"`
+	CreateTimeLT    *time.Time  `json:"createTimeLT,omitempty"`
+	CreateTimeLTE   *time.Time  `json:"createTimeLTE,omitempty"`
+
+	// "update_time" field predicates.
+	UpdateTime      *time.Time  `json:"updateTime,omitempty"`
+	UpdateTimeNEQ   *time.Time  `json:"updateTimeNEQ,omitempty"`
+	UpdateTimeIn    []time.Time `json:"updateTimeIn,omitempty"`
+	UpdateTimeNotIn []time.Time `json:"updateTimeNotIn,omitempty"`
+	UpdateTimeGT    *time.Time  `json:"updateTimeGT,omitempty"`
+	UpdateTimeGTE   *time.Time  `json:"updateTimeGTE,omitempty"`
+	UpdateTimeLT    *time.Time  `json:"updateTimeLT,omitempty"`
+	UpdateTimeLTE   *time.Time  `json:"updateTimeLTE,omitempty"`
+
+	// "slug" field predicates.
+	Slug             *string  `json:"slug,omitempty"`
+	SlugNEQ          *string  `json:"slugNEQ,omitempty"`
+	SlugIn           []string `json:"slugIn,omitempty"`
+	SlugNotIn        []string `json:"slugNotIn,omitempty"`
+	SlugGT           *string  `json:"slugGT,omitempty"`
+	SlugGTE          *string  `json:"slugGTE,omitempty"`
+	SlugLT           *string  `json:"slugLT,omitempty"`
+	SlugLTE          *string  `json:"slugLTE,omitempty"`
+	SlugContains     *string  `json:"slugContains,omitempty"`
+	SlugHasPrefix    *string  `json:"slugHasPrefix,omitempty"`
+	SlugHasSuffix    *string  `json:"slugHasSuffix,omitempty"`
+	SlugEqualFold    *string  `json:"slugEqualFold,omitempty"`
+	SlugContainsFold *string  `json:"slugContainsFold,omitempty"`
+
+	// "title" field predicates.
+	Title             *string  `json:"title,omitempty"`
+	TitleNEQ          *string  `json:"titleNEQ,omitempty"`
+	TitleIn           []string `json:"titleIn,omitempty"`
+	TitleNotIn        []string `json:"titleNotIn,omitempty"`
+	TitleGT           *string  `json:"titleGT,omitempty"`
+	TitleGTE          *string  `json:"titleGTE,omitempty"`
+	TitleLT           *string  `json:"titleLT,omitempty"`
+	TitleLTE          *string  `json:"titleLTE,omitempty"`
+	TitleContains     *string  `json:"titleContains,omitempty"`
+	TitleHasPrefix    *string  `json:"titleHasPrefix,omitempty"`
+	TitleHasSuffix    *string  `json:"titleHasSuffix,omitempty"`
+	TitleEqualFold    *string  `json:"titleEqualFold,omitempty"`
+	TitleContainsFold *string  `json:"titleContainsFold,omitempty"`
+
+	// "content" field predicates.
+	Content             *string  `json:"content,omitempty"`
+	ContentNEQ          *string  `json:"contentNEQ,omitempty"`
+	ContentIn           []string `json:"contentIn,omitempty"`
+	ContentNotIn        []string `json:"contentNotIn,omitempty"`
+	ContentGT           *string  `json:"contentGT,omitempty"`
+	ContentGTE          *string  `json:"contentGTE,omitempty"`
+	ContentLT           *string  `json:"contentLT,omitempty"`
+	ContentLTE          *string  `json:"contentLTE,omitempty"`
+	ContentContains     *string  `json:"contentContains,omitempty"`
+	ContentHasPrefix    *string  `json:"contentHasPrefix,omitempty"`
+	ContentHasSuffix    *string  `json:"contentHasSuffix,omitempty"`
+	ContentEqualFold    *string  `json:"contentEqualFold,omitempty"`
+	ContentContainsFold *string  `json:"contentContainsFold,omitempty"`
+
+	// "content_html" field predicates.
+	ContentHTML             *string  `json:"contentHTML,omitempty"`
+	ContentHTMLNEQ          *string  `json:"contentHTMLNEQ,omitempty"`
+	ContentHTMLIn           []string `json:"contentHTMLIn,omitempty"`
+	ContentHTMLNotIn        []string `json:"contentHTMLNotIn,omitempty"`
+	ContentHTMLGT           *string  `json:"contentHTMLGT,omitempty"`
+	ContentHTMLGTE          *string  `json:"contentHTMLGTE,omitempty"`
+	ContentHTMLLT           *string  `json:"contentHTMLLT,omitempty"`
+	ContentHTMLLTE          *string  `json:"contentHTMLLTE,omitempty"`
+	ContentHTMLContains     *string  `json:"contentHTMLContains,omitempty"`
+	ContentHTMLHasPrefix    *string  `json:"contentHTMLHasPrefix,omitempty"`
+	ContentHTMLHasSuffix    *string  `json:"contentHTMLHasSuffix,omitempty"`
+	ContentHTMLEqualFold    *string  `json:"contentHTMLEqualFold,omitempty"`
+	ContentHTMLContainsFold *string  `json:"contentHTMLContainsFold,omitempty"`
+
+	// "summary" field predicates.
+	Summary             *string  `json:"summary,omitempty"`
+	SummaryNEQ          *string  `json:"summaryNEQ,omitempty"`
+	SummaryIn           []string `json:"summaryIn,omitempty"`
+	SummaryNotIn        []string `json:"summaryNotIn,omitempty"`
+	SummaryGT           *string  `json:"summaryGT,omitempty"`
+	SummaryGTE          *string  `json:"summaryGTE,omitempty"`
+	SummaryLT           *string  `json:"summaryLT,omitempty"`
+	SummaryLTE          *string  `json:"summaryLTE,omitempty"`
+	SummaryContains     *string  `json:"summaryContains,omitempty"`
+	SummaryHasPrefix    *string  `json:"summaryHasPrefix,omitempty"`
+	SummaryHasSuffix    *string  `json:"summaryHasSuffix,omitempty"`
+	SummaryEqualFold    *string  `json:"summaryEqualFold,omitempty"`
+	SummaryContainsFold *string  `json:"summaryContainsFold,omitempty"`
+
+	// "published_at" field predicates.
+	PublishedAt      *time.Time  `json:"publishedAt,omitempty"`
+	PublishedAtNEQ   *time.Time  `json:"publishedAtNEQ,omitempty"`
+	PublishedAtIn    []time.Time `json:"publishedAtIn,omitempty"`
+	PublishedAtNotIn []time.Time `json:"publishedAtNotIn,omitempty"`
+	PublishedAtGT    *time.Time  `json:"publishedAtGT,omitempty"`
+	PublishedAtGTE   *time.Time  `json:"publishedAtGTE,omitempty"`
+	PublishedAtLT    *time.Time  `json:"publishedAtLT,omitempty"`
+	PublishedAtLTE   *time.Time  `json:"publishedAtLTE,omitempty"`
+
+	// "view_count" field predicates.
+	ViewCount      *int  `json:"viewCount,omitempty"`
+	ViewCountNEQ   *int  `json:"viewCountNEQ,omitempty"`
+	ViewCountIn    []int `json:"viewCountIn,omitempty"`
+	ViewCountNotIn []int `json:"viewCountNotIn,omitempty"`
+	ViewCountGT    *int  `json:"viewCountGT,omitempty"`
+	ViewCountGTE   *int  `json:"viewCountGTE,omitempty"`
+	ViewCountLT    *int  `json:"viewCountLT,omitempty"`
+	ViewCountLTE   *int  `json:"viewCountLTE,omitempty"`
+
+	// "public" field predicates.
+	Public    *bool `json:"public,omitempty"`
+	PublicNEQ *bool `json:"publicNEQ,omitempty"`
+
+	// "author" edge predicates.
+	HasAuthor     *bool             `json:"hasAuthor,omitempty"`
+	HasAuthorWith []*UserWhereInput `json:"hasAuthorWith,omitempty"`
+
+	// "labels" edge predicates.
+	HasLabels     *bool              `json:"hasLabels,omitempty"`
+	HasLabelsWith []*LabelWhereInput `json:"hasLabelsWith,omitempty"`
+}
+
+// AddPredicates adds custom predicates to the where input to be used during the filtering phase.
+func (i *PostWhereInput) AddPredicates(predicates ...predicate.Post) {
+	i.Predicates = append(i.Predicates, predicates...)
+}
+
+// Filter applies the PostWhereInput filter on the PostQuery builder.
+func (i *PostWhereInput) Filter(q *PostQuery) (*PostQuery, error) {
+	if i == nil {
+		return q, nil
+	}
+	p, err := i.P()
+	if err != nil {
+		if err == ErrEmptyPostWhereInput {
+			return q, nil
+		}
+		return nil, err
+	}
+	return q.Where(p), nil
+}
+
+// ErrEmptyPostWhereInput is returned in case the PostWhereInput is empty.
+var ErrEmptyPostWhereInput = errors.New("ent: empty predicate PostWhereInput")
+
+// P returns a predicate for filtering posts.
+// An error is returned if the input is empty or invalid.
+func (i *PostWhereInput) P() (predicate.Post, error) {
+	var predicates []predicate.Post
+	if i.Not != nil {
+		p, err := i.Not.P()
+		if err != nil {
+			return nil, fmt.Errorf("%w: field 'not'", err)
+		}
+		predicates = append(predicates, post.Not(p))
+	}
+	switch n := len(i.Or); {
+	case n == 1:
+		p, err := i.Or[0].P()
+		if err != nil {
+			return nil, fmt.Errorf("%w: field 'or'", err)
+		}
+		predicates = append(predicates, p)
+	case n > 1:
+		or := make([]predicate.Post, 0, n)
+		for _, w := range i.Or {
+			p, err := w.P()
+			if err != nil {
+				return nil, fmt.Errorf("%w: field 'or'", err)
+			}
+			or = append(or, p)
+		}
+		predicates = append(predicates, post.Or(or...))
+	}
+	switch n := len(i.And); {
+	case n == 1:
+		p, err := i.And[0].P()
+		if err != nil {
+			return nil, fmt.Errorf("%w: field 'and'", err)
+		}
+		predicates = append(predicates, p)
+	case n > 1:
+		and := make([]predicate.Post, 0, n)
+		for _, w := range i.And {
+			p, err := w.P()
+			if err != nil {
+				return nil, fmt.Errorf("%w: field 'and'", err)
+			}
+			and = append(and, p)
+		}
+		predicates = append(predicates, post.And(and...))
+	}
+	predicates = append(predicates, i.Predicates...)
+	if i.ID != nil {
+		predicates = append(predicates, post.IDEQ(*i.ID))
+	}
+	if i.IDNEQ != nil {
+		predicates = append(predicates, post.IDNEQ(*i.IDNEQ))
+	}
+	if len(i.IDIn) > 0 {
+		predicates = append(predicates, post.IDIn(i.IDIn...))
+	}
+	if len(i.IDNotIn) > 0 {
+		predicates = append(predicates, post.IDNotIn(i.IDNotIn...))
+	}
+	if i.IDGT != nil {
+		predicates = append(predicates, post.IDGT(*i.IDGT))
+	}
+	if i.IDGTE != nil {
+		predicates = append(predicates, post.IDGTE(*i.IDGTE))
+	}
+	if i.IDLT != nil {
+		predicates = append(predicates, post.IDLT(*i.IDLT))
+	}
+	if i.IDLTE != nil {
+		predicates = append(predicates, post.IDLTE(*i.IDLTE))
+	}
+	if i.CreateTime != nil {
+		predicates = append(predicates, post.CreateTimeEQ(*i.CreateTime))
+	}
+	if i.CreateTimeNEQ != nil {
+		predicates = append(predicates, post.CreateTimeNEQ(*i.CreateTimeNEQ))
+	}
+	if len(i.CreateTimeIn) > 0 {
+		predicates = append(predicates, post.CreateTimeIn(i.CreateTimeIn...))
+	}
+	if len(i.CreateTimeNotIn) > 0 {
+		predicates = append(predicates, post.CreateTimeNotIn(i.CreateTimeNotIn...))
+	}
+	if i.CreateTimeGT != nil {
+		predicates = append(predicates, post.CreateTimeGT(*i.CreateTimeGT))
+	}
+	if i.CreateTimeGTE != nil {
+		predicates = append(predicates, post.CreateTimeGTE(*i.CreateTimeGTE))
+	}
+	if i.CreateTimeLT != nil {
+		predicates = append(predicates, post.CreateTimeLT(*i.CreateTimeLT))
+	}
+	if i.CreateTimeLTE != nil {
+		predicates = append(predicates, post.CreateTimeLTE(*i.CreateTimeLTE))
+	}
+	if i.UpdateTime != nil {
+		predicates = append(predicates, post.UpdateTimeEQ(*i.UpdateTime))
+	}
+	if i.UpdateTimeNEQ != nil {
+		predicates = append(predicates, post.UpdateTimeNEQ(*i.UpdateTimeNEQ))
+	}
+	if len(i.UpdateTimeIn) > 0 {
+		predicates = append(predicates, post.UpdateTimeIn(i.UpdateTimeIn...))
+	}
+	if len(i.UpdateTimeNotIn) > 0 {
+		predicates = append(predicates, post.UpdateTimeNotIn(i.UpdateTimeNotIn...))
+	}
+	if i.UpdateTimeGT != nil {
+		predicates = append(predicates, post.UpdateTimeGT(*i.UpdateTimeGT))
+	}
+	if i.UpdateTimeGTE != nil {
+		predicates = append(predicates, post.UpdateTimeGTE(*i.UpdateTimeGTE))
+	}
+	if i.UpdateTimeLT != nil {
+		predicates = append(predicates, post.UpdateTimeLT(*i.UpdateTimeLT))
+	}
+	if i.UpdateTimeLTE != nil {
+		predicates = append(predicates, post.UpdateTimeLTE(*i.UpdateTimeLTE))
+	}
+	if i.Slug != nil {
+		predicates = append(predicates, post.SlugEQ(*i.Slug))
+	}
+	if i.SlugNEQ != nil {
+		predicates = append(predicates, post.SlugNEQ(*i.SlugNEQ))
+	}
+	if len(i.SlugIn) > 0 {
+		predicates = append(predicates, post.SlugIn(i.SlugIn...))
+	}
+	if len(i.SlugNotIn) > 0 {
+		predicates = append(predicates, post.SlugNotIn(i.SlugNotIn...))
+	}
+	if i.SlugGT != nil {
+		predicates = append(predicates, post.SlugGT(*i.SlugGT))
+	}
+	if i.SlugGTE != nil {
+		predicates = append(predicates, post.SlugGTE(*i.SlugGTE))
+	}
+	if i.SlugLT != nil {
+		predicates = append(predicates, post.SlugLT(*i.SlugLT))
+	}
+	if i.SlugLTE != nil {
+		predicates = append(predicates, post.SlugLTE(*i.SlugLTE))
+	}
+	if i.SlugContains != nil {
+		predicates = append(predicates, post.SlugContains(*i.SlugContains))
+	}
+	if i.SlugHasPrefix != nil {
+		predicates = append(predicates, post.SlugHasPrefix(*i.SlugHasPrefix))
+	}
+	if i.SlugHasSuffix != nil {
+		predicates = append(predicates, post.SlugHasSuffix(*i.SlugHasSuffix))
+	}
+	if i.SlugEqualFold != nil {
+		predicates = append(predicates, post.SlugEqualFold(*i.SlugEqualFold))
+	}
+	if i.SlugContainsFold != nil {
+		predicates = append(predicates, post.SlugContainsFold(*i.SlugContainsFold))
+	}
+	if i.Title != nil {
+		predicates = append(predicates, post.TitleEQ(*i.Title))
+	}
+	if i.TitleNEQ != nil {
+		predicates = append(predicates, post.TitleNEQ(*i.TitleNEQ))
+	}
+	if len(i.TitleIn) > 0 {
+		predicates = append(predicates, post.TitleIn(i.TitleIn...))
+	}
+	if len(i.TitleNotIn) > 0 {
+		predicates = append(predicates, post.TitleNotIn(i.TitleNotIn...))
+	}
+	if i.TitleGT != nil {
+		predicates = append(predicates, post.TitleGT(*i.TitleGT))
+	}
+	if i.TitleGTE != nil {
+		predicates = append(predicates, post.TitleGTE(*i.TitleGTE))
+	}
+	if i.TitleLT != nil {
+		predicates = append(predicates, post.TitleLT(*i.TitleLT))
+	}
+	if i.TitleLTE != nil {
+		predicates = append(predicates, post.TitleLTE(*i.TitleLTE))
+	}
+	if i.TitleContains != nil {
+		predicates = append(predicates, post.TitleContains(*i.TitleContains))
+	}
+	if i.TitleHasPrefix != nil {
+		predicates = append(predicates, post.TitleHasPrefix(*i.TitleHasPrefix))
+	}
+	if i.TitleHasSuffix != nil {
+		predicates = append(predicates, post.TitleHasSuffix(*i.TitleHasSuffix))
+	}
+	if i.TitleEqualFold != nil {
+		predicates = append(predicates, post.TitleEqualFold(*i.TitleEqualFold))
+	}
+	if i.TitleContainsFold != nil {
+		predicates = append(predicates, post.TitleContainsFold(*i.TitleContainsFold))
+	}
+	if i.Content != nil {
+		predicates = append(predicates, post.ContentEQ(*i.Content))
+	}
+	if i.ContentNEQ != nil {
+		predicates = append(predicates, post.ContentNEQ(*i.ContentNEQ))
+	}
+	if len(i.ContentIn) > 0 {
+		predicates = append(predicates, post.ContentIn(i.ContentIn...))
+	}
+	if len(i.ContentNotIn) > 0 {
+		predicates = append(predicates, post.ContentNotIn(i.ContentNotIn...))
+	}
+	if i.ContentGT != nil {
+		predicates = append(predicates, post.ContentGT(*i.ContentGT))
+	}
+	if i.ContentGTE != nil {
+		predicates = append(predicates, post.ContentGTE(*i.ContentGTE))
+	}
+	if i.ContentLT != nil {
+		predicates = append(predicates, post.ContentLT(*i.ContentLT))
+	}
+	if i.ContentLTE != nil {
+		predicates = append(predicates, post.ContentLTE(*i.ContentLTE))
+	}
+	if i.ContentContains != nil {
+		predicates = append(predicates, post.ContentContains(*i.ContentContains))
+	}
+	if i.ContentHasPrefix != nil {
+		predicates = append(predicates, post.ContentHasPrefix(*i.ContentHasPrefix))
+	}
+	if i.ContentHasSuffix != nil {
+		predicates = append(predicates, post.ContentHasSuffix(*i.ContentHasSuffix))
+	}
+	if i.ContentEqualFold != nil {
+		predicates = append(predicates, post.ContentEqualFold(*i.ContentEqualFold))
+	}
+	if i.ContentContainsFold != nil {
+		predicates = append(predicates, post.ContentContainsFold(*i.ContentContainsFold))
+	}
+	if i.ContentHTML != nil {
+		predicates = append(predicates, post.ContentHTMLEQ(*i.ContentHTML))
+	}
+	if i.ContentHTMLNEQ != nil {
+		predicates = append(predicates, post.ContentHTMLNEQ(*i.ContentHTMLNEQ))
+	}
+	if len(i.ContentHTMLIn) > 0 {
+		predicates = append(predicates, post.ContentHTMLIn(i.ContentHTMLIn...))
+	}
+	if len(i.ContentHTMLNotIn) > 0 {
+		predicates = append(predicates, post.ContentHTMLNotIn(i.ContentHTMLNotIn...))
+	}
+	if i.ContentHTMLGT != nil {
+		predicates = append(predicates, post.ContentHTMLGT(*i.ContentHTMLGT))
+	}
+	if i.ContentHTMLGTE != nil {
+		predicates = append(predicates, post.ContentHTMLGTE(*i.ContentHTMLGTE))
+	}
+	if i.ContentHTMLLT != nil {
+		predicates = append(predicates, post.ContentHTMLLT(*i.ContentHTMLLT))
+	}
+	if i.ContentHTMLLTE != nil {
+		predicates = append(predicates, post.ContentHTMLLTE(*i.ContentHTMLLTE))
+	}
+	if i.ContentHTMLContains != nil {
+		predicates = append(predicates, post.ContentHTMLContains(*i.ContentHTMLContains))
+	}
+	if i.ContentHTMLHasPrefix != nil {
+		predicates = append(predicates, post.ContentHTMLHasPrefix(*i.ContentHTMLHasPrefix))
+	}
+	if i.ContentHTMLHasSuffix != nil {
+		predicates = append(predicates, post.ContentHTMLHasSuffix(*i.ContentHTMLHasSuffix))
+	}
+	if i.ContentHTMLEqualFold != nil {
+		predicates = append(predicates, post.ContentHTMLEqualFold(*i.ContentHTMLEqualFold))
+	}
+	if i.ContentHTMLContainsFold != nil {
+		predicates = append(predicates, post.ContentHTMLContainsFold(*i.ContentHTMLContainsFold))
+	}
+	if i.Summary != nil {
+		predicates = append(predicates, post.SummaryEQ(*i.Summary))
+	}
+	if i.SummaryNEQ != nil {
+		predicates = append(predicates, post.SummaryNEQ(*i.SummaryNEQ))
+	}
+	if len(i.SummaryIn) > 0 {
+		predicates = append(predicates, post.SummaryIn(i.SummaryIn...))
+	}
+	if len(i.SummaryNotIn) > 0 {
+		predicates = append(predicates, post.SummaryNotIn(i.SummaryNotIn...))
+	}
+	if i.SummaryGT != nil {
+		predicates = append(predicates, post.SummaryGT(*i.SummaryGT))
+	}
+	if i.SummaryGTE != nil {
+		predicates = append(predicates, post.SummaryGTE(*i.SummaryGTE))
+	}
+	if i.SummaryLT != nil {
+		predicates = append(predicates, post.SummaryLT(*i.SummaryLT))
+	}
+	if i.SummaryLTE != nil {
+		predicates = append(predicates, post.SummaryLTE(*i.SummaryLTE))
+	}
+	if i.SummaryContains != nil {
+		predicates = append(predicates, post.SummaryContains(*i.SummaryContains))
+	}
+	if i.SummaryHasPrefix != nil {
+		predicates = append(predicates, post.SummaryHasPrefix(*i.SummaryHasPrefix))
+	}
+	if i.SummaryHasSuffix != nil {
+		predicates = append(predicates, post.SummaryHasSuffix(*i.SummaryHasSuffix))
+	}
+	if i.SummaryEqualFold != nil {
+		predicates = append(predicates, post.SummaryEqualFold(*i.SummaryEqualFold))
+	}
+	if i.SummaryContainsFold != nil {
+		predicates = append(predicates, post.SummaryContainsFold(*i.SummaryContainsFold))
+	}
+	if i.PublishedAt != nil {
+		predicates = append(predicates, post.PublishedAtEQ(*i.PublishedAt))
+	}
+	if i.PublishedAtNEQ != nil {
+		predicates = append(predicates, post.PublishedAtNEQ(*i.PublishedAtNEQ))
+	}
+	if len(i.PublishedAtIn) > 0 {
+		predicates = append(predicates, post.PublishedAtIn(i.PublishedAtIn...))
+	}
+	if len(i.PublishedAtNotIn) > 0 {
+		predicates = append(predicates, post.PublishedAtNotIn(i.PublishedAtNotIn...))
+	}
+	if i.PublishedAtGT != nil {
+		predicates = append(predicates, post.PublishedAtGT(*i.PublishedAtGT))
+	}
+	if i.PublishedAtGTE != nil {
+		predicates = append(predicates, post.PublishedAtGTE(*i.PublishedAtGTE))
+	}
+	if i.PublishedAtLT != nil {
+		predicates = append(predicates, post.PublishedAtLT(*i.PublishedAtLT))
+	}
+	if i.PublishedAtLTE != nil {
+		predicates = append(predicates, post.PublishedAtLTE(*i.PublishedAtLTE))
+	}
+	if i.ViewCount != nil {
+		predicates = append(predicates, post.ViewCountEQ(*i.ViewCount))
+	}
+	if i.ViewCountNEQ != nil {
+		predicates = append(predicates, post.ViewCountNEQ(*i.ViewCountNEQ))
+	}
+	if len(i.ViewCountIn) > 0 {
+		predicates = append(predicates, post.ViewCountIn(i.ViewCountIn...))
+	}
+	if len(i.ViewCountNotIn) > 0 {
+		predicates = append(predicates, post.ViewCountNotIn(i.ViewCountNotIn...))
+	}
+	if i.ViewCountGT != nil {
+		predicates = append(predicates, post.ViewCountGT(*i.ViewCountGT))
+	}
+	if i.ViewCountGTE != nil {
+		predicates = append(predicates, post.ViewCountGTE(*i.ViewCountGTE))
+	}
+	if i.ViewCountLT != nil {
+		predicates = append(predicates, post.ViewCountLT(*i.ViewCountLT))
+	}
+	if i.ViewCountLTE != nil {
+		predicates = append(predicates, post.ViewCountLTE(*i.ViewCountLTE))
+	}
+	if i.Public != nil {
+		predicates = append(predicates, post.PublicEQ(*i.Public))
+	}
+	if i.PublicNEQ != nil {
+		predicates = append(predicates, post.PublicNEQ(*i.PublicNEQ))
+	}
+
+	if i.HasAuthor != nil {
+		p := post.HasAuthor()
+		if !*i.HasAuthor {
+			p = post.Not(p)
+		}
+		predicates = append(predicates, p)
+	}
+	if len(i.HasAuthorWith) > 0 {
+		with := make([]predicate.User, 0, len(i.HasAuthorWith))
+		for _, w := range i.HasAuthorWith {
+			p, err := w.P()
+			if err != nil {
+				return nil, fmt.Errorf("%w: field 'HasAuthorWith'", err)
+			}
+			with = append(with, p)
+		}
+		predicates = append(predicates, post.HasAuthorWith(with...))
+	}
+	if i.HasLabels != nil {
+		p := post.HasLabels()
+		if !*i.HasLabels {
+			p = post.Not(p)
+		}
+		predicates = append(predicates, p)
+	}
+	if len(i.HasLabelsWith) > 0 {
+		with := make([]predicate.Label, 0, len(i.HasLabelsWith))
+		for _, w := range i.HasLabelsWith {
+			p, err := w.P()
+			if err != nil {
+				return nil, fmt.Errorf("%w: field 'HasLabelsWith'", err)
+			}
+			with = append(with, p)
+		}
+		predicates = append(predicates, post.HasLabelsWith(with...))
+	}
+	switch len(predicates) {
+	case 0:
+		return nil, ErrEmptyPostWhereInput
+	case 1:
+		return predicates[0], nil
+	default:
+		return post.And(predicates...), nil
+	}
+}
+
+// UserWhereInput represents a where input for filtering User queries.
+type UserWhereInput struct {
+	Predicates []predicate.User  `json:"-"`
+	Not        *UserWhereInput   `json:"not,omitempty"`
+	Or         []*UserWhereInput `json:"or,omitempty"`
+	And        []*UserWhereInput `json:"and,omitempty"`
+
+	// "id" field predicates.
+	ID      *int  `json:"id,omitempty"`
+	IDNEQ   *int  `json:"idNEQ,omitempty"`
+	IDIn    []int `json:"idIn,omitempty"`
+	IDNotIn []int `json:"idNotIn,omitempty"`
+	IDGT    *int  `json:"idGT,omitempty"`
+	IDGTE   *int  `json:"idGTE,omitempty"`
+	IDLT    *int  `json:"idLT,omitempty"`
+	IDLTE   *int  `json:"idLTE,omitempty"`
+
+	// "create_time" field predicates.
+	CreateTime      *time.Time  `json:"createTime,omitempty"`
+	CreateTimeNEQ   *time.Time  `json:"createTimeNEQ,omitempty"`
+	CreateTimeIn    []time.Time `json:"createTimeIn,omitempty"`
+	CreateTimeNotIn []time.Time `json:"createTimeNotIn,omitempty"`
+	CreateTimeGT    *time.Time  `json:"createTimeGT,omitempty"`
+	CreateTimeGTE   *time.Time  `json:"createTimeGTE,omitempty"`
+	CreateTimeLT    *time.Time  `json:"createTimeLT,omitempty"`
+	CreateTimeLTE   *time.Time  `json:"createTimeLTE,omitempty"`
+
+	// "update_time" field predicates.
+	UpdateTime      *time.Time  `json:"updateTime,omitempty"`
+	UpdateTimeNEQ   *time.Time  `json:"updateTimeNEQ,omitempty"`
+	UpdateTimeIn    []time.Time `json:"updateTimeIn,omitempty"`
+	UpdateTimeNotIn []time.Time `json:"updateTimeNotIn,omitempty"`
+	UpdateTimeGT    *time.Time  `json:"updateTimeGT,omitempty"`
+	UpdateTimeGTE   *time.Time  `json:"updateTimeGTE,omitempty"`
+	UpdateTimeLT    *time.Time  `json:"updateTimeLT,omitempty"`
+	UpdateTimeLTE   *time.Time  `json:"updateTimeLTE,omitempty"`
+
+	// "user_id" field predicates.
+	UserID      *int  `json:"userID,omitempty"`
+	UserIDNEQ   *int  `json:"userIDNEQ,omitempty"`
+	UserIDIn    []int `json:"userIDIn,omitempty"`
+	UserIDNotIn []int `json:"userIDNotIn,omitempty"`
+	UserIDGT    *int  `json:"userIDGT,omitempty"`
+	UserIDGTE   *int  `json:"userIDGTE,omitempty"`
+	UserIDLT    *int  `json:"userIDLT,omitempty"`
+	UserIDLTE   *int  `json:"userIDLTE,omitempty"`
+
+	// "login" field predicates.
+	Login             *string  `json:"login,omitempty"`
+	LoginNEQ          *string  `json:"loginNEQ,omitempty"`
+	LoginIn           []string `json:"loginIn,omitempty"`
+	LoginNotIn        []string `json:"loginNotIn,omitempty"`
+	LoginGT           *string  `json:"loginGT,omitempty"`
+	LoginGTE          *string  `json:"loginGTE,omitempty"`
+	LoginLT           *string  `json:"loginLT,omitempty"`
+	LoginLTE          *string  `json:"loginLTE,omitempty"`
+	LoginContains     *string  `json:"loginContains,omitempty"`
+	LoginHasPrefix    *string  `json:"loginHasPrefix,omitempty"`
+	LoginHasSuffix    *string  `json:"loginHasSuffix,omitempty"`
+	LoginEqualFold    *string  `json:"loginEqualFold,omitempty"`
+	LoginContainsFold *string  `json:"loginContainsFold,omitempty"`
+
+	// "name" field predicates.
+	Name             *string  `json:"name,omitempty"`
+	NameNEQ          *string  `json:"nameNEQ,omitempty"`
+	NameIn           []string `json:"nameIn,omitempty"`
+	NameNotIn        []string `json:"nameNotIn,omitempty"`
+	NameGT           *string  `json:"nameGT,omitempty"`
+	NameGTE          *string  `json:"nameGTE,omitempty"`
+	NameLT           *string  `json:"nameLT,omitempty"`
+	NameLTE          *string  `json:"nameLTE,omitempty"`
+	NameContains     *string  `json:"nameContains,omitempty"`
+	NameHasPrefix    *string  `json:"nameHasPrefix,omitempty"`
+	NameHasSuffix    *string  `json:"nameHasSuffix,omitempty"`
+	NameIsNil        bool     `json:"nameIsNil,omitempty"`
+	NameNotNil       bool     `json:"nameNotNil,omitempty"`
+	NameEqualFold    *string  `json:"nameEqualFold,omitempty"`
+	NameContainsFold *string  `json:"nameContainsFold,omitempty"`
+
+	// "avatar_url" field predicates.
+	AvatarURL             *string  `json:"avatarURL,omitempty"`
+	AvatarURLNEQ          *string  `json:"avatarURLNEQ,omitempty"`
+	AvatarURLIn           []string `json:"avatarURLIn,omitempty"`
+	AvatarURLNotIn        []string `json:"avatarURLNotIn,omitempty"`
+	AvatarURLGT           *string  `json:"avatarURLGT,omitempty"`
+	AvatarURLGTE          *string  `json:"avatarURLGTE,omitempty"`
+	AvatarURLLT           *string  `json:"avatarURLLT,omitempty"`
+	AvatarURLLTE          *string  `json:"avatarURLLTE,omitempty"`
+	AvatarURLContains     *string  `json:"avatarURLContains,omitempty"`
+	AvatarURLHasPrefix    *string  `json:"avatarURLHasPrefix,omitempty"`
+	AvatarURLHasSuffix    *string  `json:"avatarURLHasSuffix,omitempty"`
+	AvatarURLIsNil        bool     `json:"avatarURLIsNil,omitempty"`
+	AvatarURLNotNil       bool     `json:"avatarURLNotNil,omitempty"`
+	AvatarURLEqualFold    *string  `json:"avatarURLEqualFold,omitempty"`
+	AvatarURLContainsFold *string  `json:"avatarURLContainsFold,omitempty"`
+
+	// "html_url" field predicates.
+	HTMLURL             *string  `json:"htmlURL,omitempty"`
+	HTMLURLNEQ          *string  `json:"htmlURLNEQ,omitempty"`
+	HTMLURLIn           []string `json:"htmlURLIn,omitempty"`
+	HTMLURLNotIn        []string `json:"htmlURLNotIn,omitempty"`
+	HTMLURLGT           *string  `json:"htmlURLGT,omitempty"`
+	HTMLURLGTE          *string  `json:"htmlURLGTE,omitempty"`
+	HTMLURLLT           *string  `json:"htmlURLLT,omitempty"`
+	HTMLURLLTE          *string  `json:"htmlURLLTE,omitempty"`
+	HTMLURLContains     *string  `json:"htmlURLContains,omitempty"`
+	HTMLURLHasPrefix    *string  `json:"htmlURLHasPrefix,omitempty"`
+	HTMLURLHasSuffix    *string  `json:"htmlURLHasSuffix,omitempty"`
+	HTMLURLIsNil        bool     `json:"htmlURLIsNil,omitempty"`
+	HTMLURLNotNil       bool     `json:"htmlURLNotNil,omitempty"`
+	HTMLURLEqualFold    *string  `json:"htmlURLEqualFold,omitempty"`
+	HTMLURLContainsFold *string  `json:"htmlURLContainsFold,omitempty"`
+
+	// "email" field predicates.
+	Email             *string  `json:"email,omitempty"`
+	EmailNEQ          *string  `json:"emailNEQ,omitempty"`
+	EmailIn           []string `json:"emailIn,omitempty"`
+	EmailNotIn        []string `json:"emailNotIn,omitempty"`
+	EmailGT           *string  `json:"emailGT,omitempty"`
+	EmailGTE          *string  `json:"emailGTE,omitempty"`
+	EmailLT           *string  `json:"emailLT,omitempty"`
+	EmailLTE          *string  `json:"emailLTE,omitempty"`
+	EmailContains     *string  `json:"emailContains,omitempty"`
+	EmailHasPrefix    *string  `json:"emailHasPrefix,omitempty"`
+	EmailHasSuffix    *string  `json:"emailHasSuffix,omitempty"`
+	EmailIsNil        bool     `json:"emailIsNil,omitempty"`
+	EmailNotNil       bool     `json:"emailNotNil,omitempty"`
+	EmailEqualFold    *string  `json:"emailEqualFold,omitempty"`
+	EmailContainsFold *string  `json:"emailContainsFold,omitempty"`
+
+	// "location" field predicates.
+	Location             *string  `json:"location,omitempty"`
+	LocationNEQ          *string  `json:"locationNEQ,omitempty"`
+	LocationIn           []string `json:"locationIn,omitempty"`
+	LocationNotIn        []string `json:"locationNotIn,omitempty"`
+	LocationGT           *string  `json:"locationGT,omitempty"`
+	LocationGTE          *string  `json:"locationGTE,omitempty"`
+	LocationLT           *string  `json:"locationLT,omitempty"`
+	LocationLTE          *string  `json:"locationLTE,omitempty"`
+	LocationContains     *string  `json:"locationContains,omitempty"`
+	LocationHasPrefix    *string  `json:"locationHasPrefix,omitempty"`
+	LocationHasSuffix    *string  `json:"locationHasSuffix,omitempty"`
+	LocationIsNil        bool     `json:"locationIsNil,omitempty"`
+	LocationNotNil       bool     `json:"locationNotNil,omitempty"`
+	LocationEqualFold    *string  `json:"locationEqualFold,omitempty"`
+	LocationContainsFold *string  `json:"locationContainsFold,omitempty"`
+
+	// "bio" field predicates.
+	Bio             *string  `json:"bio,omitempty"`
+	BioNEQ          *string  `json:"bioNEQ,omitempty"`
+	BioIn           []string `json:"bioIn,omitempty"`
+	BioNotIn        []string `json:"bioNotIn,omitempty"`
+	BioGT           *string  `json:"bioGT,omitempty"`
+	BioGTE          *string  `json:"bioGTE,omitempty"`
+	BioLT           *string  `json:"bioLT,omitempty"`
+	BioLTE          *string  `json:"bioLTE,omitempty"`
+	BioContains     *string  `json:"bioContains,omitempty"`
+	BioHasPrefix    *string  `json:"bioHasPrefix,omitempty"`
+	BioHasSuffix    *string  `json:"bioHasSuffix,omitempty"`
+	BioIsNil        bool     `json:"bioIsNil,omitempty"`
+	BioNotNil       bool     `json:"bioNotNil,omitempty"`
+	BioEqualFold    *string  `json:"bioEqualFold,omitempty"`
+	BioContainsFold *string  `json:"bioContainsFold,omitempty"`
+
+	// "posts" edge predicates.
+	HasPosts     *bool             `json:"hasPosts,omitempty"`
+	HasPostsWith []*PostWhereInput `json:"hasPostsWith,omitempty"`
+}
+
+// AddPredicates adds custom predicates to the where input to be used during the filtering phase.
+func (i *UserWhereInput) AddPredicates(predicates ...predicate.User) {
+	i.Predicates = append(i.Predicates, predicates...)
+}
+
+// Filter applies the UserWhereInput filter on the UserQuery builder.
+func (i *UserWhereInput) Filter(q *UserQuery) (*UserQuery, error) {
+	if i == nil {
+		return q, nil
+	}
+	p, err := i.P()
+	if err != nil {
+		if err == ErrEmptyUserWhereInput {
+			return q, nil
+		}
+		return nil, err
+	}
+	return q.Where(p), nil
+}
+
+// ErrEmptyUserWhereInput is returned in case the UserWhereInput is empty.
+var ErrEmptyUserWhereInput = errors.New("ent: empty predicate UserWhereInput")
+
+// P returns a predicate for filtering users.
+// An error is returned if the input is empty or invalid.
+func (i *UserWhereInput) P() (predicate.User, error) {
+	var predicates []predicate.User
+	if i.Not != nil {
+		p, err := i.Not.P()
+		if err != nil {
+			return nil, fmt.Errorf("%w: field 'not'", err)
+		}
+		predicates = append(predicates, user.Not(p))
+	}
+	switch n := len(i.Or); {
+	case n == 1:
+		p, err := i.Or[0].P()
+		if err != nil {
+			return nil, fmt.Errorf("%w: field 'or'", err)
+		}
+		predicates = append(predicates, p)
+	case n > 1:
+		or := make([]predicate.User, 0, n)
+		for _, w := range i.Or {
+			p, err := w.P()
+			if err != nil {
+				return nil, fmt.Errorf("%w: field 'or'", err)
+			}
+			or = append(or, p)
+		}
+		predicates = append(predicates, user.Or(or...))
+	}
+	switch n := len(i.And); {
+	case n == 1:
+		p, err := i.And[0].P()
+		if err != nil {
+			return nil, fmt.Errorf("%w: field 'and'", err)
+		}
+		predicates = append(predicates, p)
+	case n > 1:
+		and := make([]predicate.User, 0, n)
+		for _, w := range i.And {
+			p, err := w.P()
+			if err != nil {
+				return nil, fmt.Errorf("%w: field 'and'", err)
+			}
+			and = append(and, p)
+		}
+		predicates = append(predicates, user.And(and...))
+	}
+	predicates = append(predicates, i.Predicates...)
+	if i.ID != nil {
+		predicates = append(predicates, user.IDEQ(*i.ID))
+	}
+	if i.IDNEQ != nil {
+		predicates = append(predicates, user.IDNEQ(*i.IDNEQ))
+	}
+	if len(i.IDIn) > 0 {
+		predicates = append(predicates, user.IDIn(i.IDIn...))
+	}
+	if len(i.IDNotIn) > 0 {
+		predicates = append(predicates, user.IDNotIn(i.IDNotIn...))
+	}
+	if i.IDGT != nil {
+		predicates = append(predicates, user.IDGT(*i.IDGT))
+	}
+	if i.IDGTE != nil {
+		predicates = append(predicates, user.IDGTE(*i.IDGTE))
+	}
+	if i.IDLT != nil {
+		predicates = append(predicates, user.IDLT(*i.IDLT))
+	}
+	if i.IDLTE != nil {
+		predicates = append(predicates, user.IDLTE(*i.IDLTE))
+	}
+	if i.CreateTime != nil {
+		predicates = append(predicates, user.CreateTimeEQ(*i.CreateTime))
+	}
+	if i.CreateTimeNEQ != nil {
+		predicates = append(predicates, user.CreateTimeNEQ(*i.CreateTimeNEQ))
+	}
+	if len(i.CreateTimeIn) > 0 {
+		predicates = append(predicates, user.CreateTimeIn(i.CreateTimeIn...))
+	}
+	if len(i.CreateTimeNotIn) > 0 {
+		predicates = append(predicates, user.CreateTimeNotIn(i.CreateTimeNotIn...))
+	}
+	if i.CreateTimeGT != nil {
+		predicates = append(predicates, user.CreateTimeGT(*i.CreateTimeGT))
+	}
+	if i.CreateTimeGTE != nil {
+		predicates = append(predicates, user.CreateTimeGTE(*i.CreateTimeGTE))
+	}
+	if i.CreateTimeLT != nil {
+		predicates = append(predicates, user.CreateTimeLT(*i.CreateTimeLT))
+	}
+	if i.CreateTimeLTE != nil {
+		predicates = append(predicates, user.CreateTimeLTE(*i.CreateTimeLTE))
+	}
+	if i.UpdateTime != nil {
+		predicates = append(predicates, user.UpdateTimeEQ(*i.UpdateTime))
+	}
+	if i.UpdateTimeNEQ != nil {
+		predicates = append(predicates, user.UpdateTimeNEQ(*i.UpdateTimeNEQ))
+	}
+	if len(i.UpdateTimeIn) > 0 {
+		predicates = append(predicates, user.UpdateTimeIn(i.UpdateTimeIn...))
+	}
+	if len(i.UpdateTimeNotIn) > 0 {
+		predicates = append(predicates, user.UpdateTimeNotIn(i.UpdateTimeNotIn...))
+	}
+	if i.UpdateTimeGT != nil {
+		predicates = append(predicates, user.UpdateTimeGT(*i.UpdateTimeGT))
+	}
+	if i.UpdateTimeGTE != nil {
+		predicates = append(predicates, user.UpdateTimeGTE(*i.UpdateTimeGTE))
+	}
+	if i.UpdateTimeLT != nil {
+		predicates = append(predicates, user.UpdateTimeLT(*i.UpdateTimeLT))
+	}
+	if i.UpdateTimeLTE != nil {
+		predicates = append(predicates, user.UpdateTimeLTE(*i.UpdateTimeLTE))
+	}
+	if i.UserID != nil {
+		predicates = append(predicates, user.UserIDEQ(*i.UserID))
+	}
+	if i.UserIDNEQ != nil {
+		predicates = append(predicates, user.UserIDNEQ(*i.UserIDNEQ))
+	}
+	if len(i.UserIDIn) > 0 {
+		predicates = append(predicates, user.UserIDIn(i.UserIDIn...))
+	}
+	if len(i.UserIDNotIn) > 0 {
+		predicates = append(predicates, user.UserIDNotIn(i.UserIDNotIn...))
+	}
+	if i.UserIDGT != nil {
+		predicates = append(predicates, user.UserIDGT(*i.UserIDGT))
+	}
+	if i.UserIDGTE != nil {
+		predicates = append(predicates, user.UserIDGTE(*i.UserIDGTE))
+	}
+	if i.UserIDLT != nil {
+		predicates = append(predicates, user.UserIDLT(*i.UserIDLT))
+	}
+	if i.UserIDLTE != nil {
+		predicates = append(predicates, user.UserIDLTE(*i.UserIDLTE))
+	}
+	if i.Login != nil {
+		predicates = append(predicates, user.LoginEQ(*i.Login))
+	}
+	if i.LoginNEQ != nil {
+		predicates = append(predicates, user.LoginNEQ(*i.LoginNEQ))
+	}
+	if len(i.LoginIn) > 0 {
+		predicates = append(predicates, user.LoginIn(i.LoginIn...))
+	}
+	if len(i.LoginNotIn) > 0 {
+		predicates = append(predicates, user.LoginNotIn(i.LoginNotIn...))
+	}
+	if i.LoginGT != nil {
+		predicates = append(predicates, user.LoginGT(*i.LoginGT))
+	}
+	if i.LoginGTE != nil {
+		predicates = append(predicates, user.LoginGTE(*i.LoginGTE))
+	}
+	if i.LoginLT != nil {
+		predicates = append(predicates, user.LoginLT(*i.LoginLT))
+	}
+	if i.LoginLTE != nil {
+		predicates = append(predicates, user.LoginLTE(*i.LoginLTE))
+	}
+	if i.LoginContains != nil {
+		predicates = append(predicates, user.LoginContains(*i.LoginContains))
+	}
+	if i.LoginHasPrefix != nil {
+		predicates = append(predicates, user.LoginHasPrefix(*i.LoginHasPrefix))
+	}
+	if i.LoginHasSuffix != nil {
+		predicates = append(predicates, user.LoginHasSuffix(*i.LoginHasSuffix))
+	}
+	if i.LoginEqualFold != nil {
+		predicates = append(predicates, user.LoginEqualFold(*i.LoginEqualFold))
+	}
+	if i.LoginContainsFold != nil {
+		predicates = append(predicates, user.LoginContainsFold(*i.LoginContainsFold))
+	}
+	if i.Name != nil {
+		predicates = append(predicates, user.NameEQ(*i.Name))
+	}
+	if i.NameNEQ != nil {
+		predicates = append(predicates, user.NameNEQ(*i.NameNEQ))
+	}
+	if len(i.NameIn) > 0 {
+		predicates = append(predicates, user.NameIn(i.NameIn...))
+	}
+	if len(i.NameNotIn) > 0 {
+		predicates = append(predicates, user.NameNotIn(i.NameNotIn...))
+	}
+	if i.NameGT != nil {
+		predicates = append(predicates, user.NameGT(*i.NameGT))
+	}
+	if i.NameGTE != nil {
+		predicates = append(predicates, user.NameGTE(*i.NameGTE))
+	}
+	if i.NameLT != nil {
+		predicates = append(predicates, user.NameLT(*i.NameLT))
+	}
+	if i.NameLTE != nil {
+		predicates = append(predicates, user.NameLTE(*i.NameLTE))
+	}
+	if i.NameContains != nil {
+		predicates = append(predicates, user.NameContains(*i.NameContains))
+	}
+	if i.NameHasPrefix != nil {
+		predicates = append(predicates, user.NameHasPrefix(*i.NameHasPrefix))
+	}
+	if i.NameHasSuffix != nil {
+		predicates = append(predicates, user.NameHasSuffix(*i.NameHasSuffix))
+	}
+	if i.NameIsNil {
+		predicates = append(predicates, user.NameIsNil())
+	}
+	if i.NameNotNil {
+		predicates = append(predicates, user.NameNotNil())
+	}
+	if i.NameEqualFold != nil {
+		predicates = append(predicates, user.NameEqualFold(*i.NameEqualFold))
+	}
+	if i.NameContainsFold != nil {
+		predicates = append(predicates, user.NameContainsFold(*i.NameContainsFold))
+	}
+	if i.AvatarURL != nil {
+		predicates = append(predicates, user.AvatarURLEQ(*i.AvatarURL))
+	}
+	if i.AvatarURLNEQ != nil {
+		predicates = append(predicates, user.AvatarURLNEQ(*i.AvatarURLNEQ))
+	}
+	if len(i.AvatarURLIn) > 0 {
+		predicates = append(predicates, user.AvatarURLIn(i.AvatarURLIn...))
+	}
+	if len(i.AvatarURLNotIn) > 0 {
+		predicates = append(predicates, user.AvatarURLNotIn(i.AvatarURLNotIn...))
+	}
+	if i.AvatarURLGT != nil {
+		predicates = append(predicates, user.AvatarURLGT(*i.AvatarURLGT))
+	}
+	if i.AvatarURLGTE != nil {
+		predicates = append(predicates, user.AvatarURLGTE(*i.AvatarURLGTE))
+	}
+	if i.AvatarURLLT != nil {
+		predicates = append(predicates, user.AvatarURLLT(*i.AvatarURLLT))
+	}
+	if i.AvatarURLLTE != nil {
+		predicates = append(predicates, user.AvatarURLLTE(*i.AvatarURLLTE))
+	}
+	if i.AvatarURLContains != nil {
+		predicates = append(predicates, user.AvatarURLContains(*i.AvatarURLContains))
+	}
+	if i.AvatarURLHasPrefix != nil {
+		predicates = append(predicates, user.AvatarURLHasPrefix(*i.AvatarURLHasPrefix))
+	}
+	if i.AvatarURLHasSuffix != nil {
+		predicates = append(predicates, user.AvatarURLHasSuffix(*i.AvatarURLHasSuffix))
+	}
+	if i.AvatarURLIsNil {
+		predicates = append(predicates, user.AvatarURLIsNil())
+	}
+	if i.AvatarURLNotNil {
+		predicates = append(predicates, user.AvatarURLNotNil())
+	}
+	if i.AvatarURLEqualFold != nil {
+		predicates = append(predicates, user.AvatarURLEqualFold(*i.AvatarURLEqualFold))
+	}
+	if i.AvatarURLContainsFold != nil {
+		predicates = append(predicates, user.AvatarURLContainsFold(*i.AvatarURLContainsFold))
+	}
+	if i.HTMLURL != nil {
+		predicates = append(predicates, user.HTMLURLEQ(*i.HTMLURL))
+	}
+	if i.HTMLURLNEQ != nil {
+		predicates = append(predicates, user.HTMLURLNEQ(*i.HTMLURLNEQ))
+	}
+	if len(i.HTMLURLIn) > 0 {
+		predicates = append(predicates, user.HTMLURLIn(i.HTMLURLIn...))
+	}
+	if len(i.HTMLURLNotIn) > 0 {
+		predicates = append(predicates, user.HTMLURLNotIn(i.HTMLURLNotIn...))
+	}
+	if i.HTMLURLGT != nil {
+		predicates = append(predicates, user.HTMLURLGT(*i.HTMLURLGT))
+	}
+	if i.HTMLURLGTE != nil {
+		predicates = append(predicates, user.HTMLURLGTE(*i.HTMLURLGTE))
+	}
+	if i.HTMLURLLT != nil {
+		predicates = append(predicates, user.HTMLURLLT(*i.HTMLURLLT))
+	}
+	if i.HTMLURLLTE != nil {
+		predicates = append(predicates, user.HTMLURLLTE(*i.HTMLURLLTE))
+	}
+	if i.HTMLURLContains != nil {
+		predicates = append(predicates, user.HTMLURLContains(*i.HTMLURLContains))
+	}
+	if i.HTMLURLHasPrefix != nil {
+		predicates = append(predicates, user.HTMLURLHasPrefix(*i.HTMLURLHasPrefix))
+	}
+	if i.HTMLURLHasSuffix != nil {
+		predicates = append(predicates, user.HTMLURLHasSuffix(*i.HTMLURLHasSuffix))
+	}
+	if i.HTMLURLIsNil {
+		predicates = append(predicates, user.HTMLURLIsNil())
+	}
+	if i.HTMLURLNotNil {
+		predicates = append(predicates, user.HTMLURLNotNil())
+	}
+	if i.HTMLURLEqualFold != nil {
+		predicates = append(predicates, user.HTMLURLEqualFold(*i.HTMLURLEqualFold))
+	}
+	if i.HTMLURLContainsFold != nil {
+		predicates = append(predicates, user.HTMLURLContainsFold(*i.HTMLURLContainsFold))
+	}
+	if i.Email != nil {
+		predicates = append(predicates, user.EmailEQ(*i.Email))
+	}
+	if i.EmailNEQ != nil {
+		predicates = append(predicates, user.EmailNEQ(*i.EmailNEQ))
+	}
+	if len(i.EmailIn) > 0 {
+		predicates = append(predicates, user.EmailIn(i.EmailIn...))
+	}
+	if len(i.EmailNotIn) > 0 {
+		predicates = append(predicates, user.EmailNotIn(i.EmailNotIn...))
+	}
+	if i.EmailGT != nil {
+		predicates = append(predicates, user.EmailGT(*i.EmailGT))
+	}
+	if i.EmailGTE != nil {
+		predicates = append(predicates, user.EmailGTE(*i.EmailGTE))
+	}
+	if i.EmailLT != nil {
+		predicates = append(predicates, user.EmailLT(*i.EmailLT))
+	}
+	if i.EmailLTE != nil {
+		predicates = append(predicates, user.EmailLTE(*i.EmailLTE))
+	}
+	if i.EmailContains != nil {
+		predicates = append(predicates, user.EmailContains(*i.EmailContains))
+	}
+	if i.EmailHasPrefix != nil {
+		predicates = append(predicates, user.EmailHasPrefix(*i.EmailHasPrefix))
+	}
+	if i.EmailHasSuffix != nil {
+		predicates = append(predicates, user.EmailHasSuffix(*i.EmailHasSuffix))
+	}
+	if i.EmailIsNil {
+		predicates = append(predicates, user.EmailIsNil())
+	}
+	if i.EmailNotNil {
+		predicates = append(predicates, user.EmailNotNil())
+	}
+	if i.EmailEqualFold != nil {
+		predicates = append(predicates, user.EmailEqualFold(*i.EmailEqualFold))
+	}
+	if i.EmailContainsFold != nil {
+		predicates = append(predicates, user.EmailContainsFold(*i.EmailContainsFold))
+	}
+	if i.Location != nil {
+		predicates = append(predicates, user.LocationEQ(*i.Location))
+	}
+	if i.LocationNEQ != nil {
+		predicates = append(predicates, user.LocationNEQ(*i.LocationNEQ))
+	}
+	if len(i.LocationIn) > 0 {
+		predicates = append(predicates, user.LocationIn(i.LocationIn...))
+	}
+	if len(i.LocationNotIn) > 0 {
+		predicates = append(predicates, user.LocationNotIn(i.LocationNotIn...))
+	}
+	if i.LocationGT != nil {
+		predicates = append(predicates, user.LocationGT(*i.LocationGT))
+	}
+	if i.LocationGTE != nil {
+		predicates = append(predicates, user.LocationGTE(*i.LocationGTE))
+	}
+	if i.LocationLT != nil {
+		predicates = append(predicates, user.LocationLT(*i.LocationLT))
+	}
+	if i.LocationLTE != nil {
+		predicates = append(predicates, user.LocationLTE(*i.LocationLTE))
+	}
+	if i.LocationContains != nil {
+		predicates = append(predicates, user.LocationContains(*i.LocationContains))
+	}
+	if i.LocationHasPrefix != nil {
+		predicates = append(predicates, user.LocationHasPrefix(*i.LocationHasPrefix))
+	}
+	if i.LocationHasSuffix != nil {
+		predicates = append(predicates, user.LocationHasSuffix(*i.LocationHasSuffix))
+	}
+	if i.LocationIsNil {
+		predicates = append(predicates, user.LocationIsNil())
+	}
+	if i.LocationNotNil {
+		predicates = append(predicates, user.LocationNotNil())
+	}
+	if i.LocationEqualFold != nil {
+		predicates = append(predicates, user.LocationEqualFold(*i.LocationEqualFold))
+	}
+	if i.LocationContainsFold != nil {
+		predicates = append(predicates, user.LocationContainsFold(*i.LocationContainsFold))
+	}
+	if i.Bio != nil {
+		predicates = append(predicates, user.BioEQ(*i.Bio))
+	}
+	if i.BioNEQ != nil {
+		predicates = append(predicates, user.BioNEQ(*i.BioNEQ))
+	}
+	if len(i.BioIn) > 0 {
+		predicates = append(predicates, user.BioIn(i.BioIn...))
+	}
+	if len(i.BioNotIn) > 0 {
+		predicates = append(predicates, user.BioNotIn(i.BioNotIn...))
+	}
+	if i.BioGT != nil {
+		predicates = append(predicates, user.BioGT(*i.BioGT))
+	}
+	if i.BioGTE != nil {
+		predicates = append(predicates, user.BioGTE(*i.BioGTE))
+	}
+	if i.BioLT != nil {
+		predicates = append(predicates, user.BioLT(*i.BioLT))
+	}
+	if i.BioLTE != nil {
+		predicates = append(predicates, user.BioLTE(*i.BioLTE))
+	}
+	if i.BioContains != nil {
+		predicates = append(predicates, user.BioContains(*i.BioContains))
+	}
+	if i.BioHasPrefix != nil {
+		predicates = append(predicates, user.BioHasPrefix(*i.BioHasPrefix))
+	}
+	if i.BioHasSuffix != nil {
+		predicates = append(predicates, user.BioHasSuffix(*i.BioHasSuffix))
+	}
+	if i.BioIsNil {
+		predicates = append(predicates, user.BioIsNil())
+	}
+	if i.BioNotNil {
+		predicates = append(predicates, user.BioNotNil())
+	}
+	if i.BioEqualFold != nil {
+		predicates = append(predicates, user.BioEqualFold(*i.BioEqualFold))
+	}
+	if i.BioContainsFold != nil {
+		predicates = append(predicates, user.BioContainsFold(*i.BioContainsFold))
+	}
+
+	if i.HasPosts != nil {
+		p := user.HasPosts()
+		if !*i.HasPosts {
+			p = user.Not(p)
+		}
+		predicates = append(predicates, p)
+	}
+	if len(i.HasPostsWith) > 0 {
+		with := make([]predicate.Post, 0, len(i.HasPostsWith))
+		for _, w := range i.HasPostsWith {
+			p, err := w.P()
+			if err != nil {
+				return nil, fmt.Errorf("%w: field 'HasPostsWith'", err)
+			}
+			with = append(with, p)
+		}
+		predicates = append(predicates, user.HasPostsWith(with...))
+	}
+	switch len(predicates) {
+	case 0:
+		return nil, ErrEmptyUserWhereInput
+	case 1:
+		return predicates[0], nil
+	default:
+		return user.And(predicates...), nil
 	}
 }

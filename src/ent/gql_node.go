@@ -12,6 +12,8 @@ import (
 	"aiisx.com/src/ent/githubevent"
 	"aiisx.com/src/ent/githubrepository"
 	"aiisx.com/src/ent/label"
+	"aiisx.com/src/ent/post"
+	"aiisx.com/src/ent/user"
 	"entgo.io/contrib/entgql"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
@@ -299,7 +301,229 @@ func (l *Label) Node(ctx context.Context) (node *Node, err error) {
 		ID:     l.ID,
 		Type:   "Label",
 		Fields: make([]*Field, 0),
-		Edges:  make([]*Edge, 0),
+		Edges:  make([]*Edge, 1),
+	}
+	node.Edges[0] = &Edge{
+		Type: "Post",
+		Name: "posts",
+	}
+	err = l.QueryPosts().
+		Select(post.FieldID).
+		Scan(ctx, &node.Edges[0].IDs)
+	if err != nil {
+		return nil, err
+	}
+	return node, nil
+}
+
+func (po *Post) Node(ctx context.Context) (node *Node, err error) {
+	node = &Node{
+		ID:     po.ID,
+		Type:   "Post",
+		Fields: make([]*Field, 10),
+		Edges:  make([]*Edge, 2),
+	}
+	var buf []byte
+	if buf, err = json.Marshal(po.CreateTime); err != nil {
+		return nil, err
+	}
+	node.Fields[0] = &Field{
+		Type:  "time.Time",
+		Name:  "create_time",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(po.UpdateTime); err != nil {
+		return nil, err
+	}
+	node.Fields[1] = &Field{
+		Type:  "time.Time",
+		Name:  "update_time",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(po.Slug); err != nil {
+		return nil, err
+	}
+	node.Fields[2] = &Field{
+		Type:  "string",
+		Name:  "slug",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(po.Title); err != nil {
+		return nil, err
+	}
+	node.Fields[3] = &Field{
+		Type:  "string",
+		Name:  "title",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(po.Content); err != nil {
+		return nil, err
+	}
+	node.Fields[4] = &Field{
+		Type:  "string",
+		Name:  "content",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(po.ContentHTML); err != nil {
+		return nil, err
+	}
+	node.Fields[5] = &Field{
+		Type:  "string",
+		Name:  "content_html",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(po.Summary); err != nil {
+		return nil, err
+	}
+	node.Fields[6] = &Field{
+		Type:  "string",
+		Name:  "summary",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(po.PublishedAt); err != nil {
+		return nil, err
+	}
+	node.Fields[7] = &Field{
+		Type:  "time.Time",
+		Name:  "published_at",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(po.ViewCount); err != nil {
+		return nil, err
+	}
+	node.Fields[8] = &Field{
+		Type:  "int",
+		Name:  "view_count",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(po.Public); err != nil {
+		return nil, err
+	}
+	node.Fields[9] = &Field{
+		Type:  "bool",
+		Name:  "public",
+		Value: string(buf),
+	}
+	node.Edges[0] = &Edge{
+		Type: "User",
+		Name: "author",
+	}
+	err = po.QueryAuthor().
+		Select(user.FieldID).
+		Scan(ctx, &node.Edges[0].IDs)
+	if err != nil {
+		return nil, err
+	}
+	node.Edges[1] = &Edge{
+		Type: "Label",
+		Name: "labels",
+	}
+	err = po.QueryLabels().
+		Select(label.FieldID).
+		Scan(ctx, &node.Edges[1].IDs)
+	if err != nil {
+		return nil, err
+	}
+	return node, nil
+}
+
+func (u *User) Node(ctx context.Context) (node *Node, err error) {
+	node = &Node{
+		ID:     u.ID,
+		Type:   "User",
+		Fields: make([]*Field, 10),
+		Edges:  make([]*Edge, 1),
+	}
+	var buf []byte
+	if buf, err = json.Marshal(u.CreateTime); err != nil {
+		return nil, err
+	}
+	node.Fields[0] = &Field{
+		Type:  "time.Time",
+		Name:  "create_time",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(u.UpdateTime); err != nil {
+		return nil, err
+	}
+	node.Fields[1] = &Field{
+		Type:  "time.Time",
+		Name:  "update_time",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(u.UserID); err != nil {
+		return nil, err
+	}
+	node.Fields[2] = &Field{
+		Type:  "int",
+		Name:  "user_id",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(u.Login); err != nil {
+		return nil, err
+	}
+	node.Fields[3] = &Field{
+		Type:  "string",
+		Name:  "login",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(u.Name); err != nil {
+		return nil, err
+	}
+	node.Fields[4] = &Field{
+		Type:  "string",
+		Name:  "name",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(u.AvatarURL); err != nil {
+		return nil, err
+	}
+	node.Fields[5] = &Field{
+		Type:  "string",
+		Name:  "avatar_url",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(u.HTMLURL); err != nil {
+		return nil, err
+	}
+	node.Fields[6] = &Field{
+		Type:  "string",
+		Name:  "html_url",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(u.Email); err != nil {
+		return nil, err
+	}
+	node.Fields[7] = &Field{
+		Type:  "string",
+		Name:  "email",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(u.Location); err != nil {
+		return nil, err
+	}
+	node.Fields[8] = &Field{
+		Type:  "string",
+		Name:  "location",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(u.Bio); err != nil {
+		return nil, err
+	}
+	node.Fields[9] = &Field{
+		Type:  "string",
+		Name:  "bio",
+		Value: string(buf),
+	}
+	node.Edges[0] = &Edge{
+		Type: "Post",
+		Name: "posts",
+	}
+	err = u.QueryPosts().
+		Select(post.FieldID).
+		Scan(ctx, &node.Edges[0].IDs)
+	if err != nil {
+		return nil, err
 	}
 	return node, nil
 }
@@ -398,6 +622,30 @@ func (c *Client) noder(ctx context.Context, table string, id int) (Noder, error)
 		query := c.Label.Query().
 			Where(label.ID(id))
 		query, err := query.CollectFields(ctx, "Label")
+		if err != nil {
+			return nil, err
+		}
+		n, err := query.Only(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return n, nil
+	case post.Table:
+		query := c.Post.Query().
+			Where(post.ID(id))
+		query, err := query.CollectFields(ctx, "Post")
+		if err != nil {
+			return nil, err
+		}
+		n, err := query.Only(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return n, nil
+	case user.Table:
+		query := c.User.Query().
+			Where(user.ID(id))
+		query, err := query.CollectFields(ctx, "User")
 		if err != nil {
 			return nil, err
 		}
@@ -515,6 +763,38 @@ func (c *Client) noders(ctx context.Context, table string, ids []int) ([]Noder, 
 		query := c.Label.Query().
 			Where(label.IDIn(ids...))
 		query, err := query.CollectFields(ctx, "Label")
+		if err != nil {
+			return nil, err
+		}
+		nodes, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, node := range nodes {
+			for _, noder := range idmap[node.ID] {
+				*noder = node
+			}
+		}
+	case post.Table:
+		query := c.Post.Query().
+			Where(post.IDIn(ids...))
+		query, err := query.CollectFields(ctx, "Post")
+		if err != nil {
+			return nil, err
+		}
+		nodes, err := query.All(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, node := range nodes {
+			for _, noder := range idmap[node.ID] {
+				*noder = node
+			}
+		}
+	case user.Table:
+		query := c.User.Query().
+			Where(user.IDIn(ids...))
+		query, err := query.CollectFields(ctx, "User")
 		if err != nil {
 			return nil, err
 		}
