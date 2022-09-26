@@ -1,6 +1,7 @@
 import AutoImport from "unplugin-auto-import/vite";
 import Components from "unplugin-vue-components/vite";
 import { NaiveUiResolver } from "unplugin-vue-components/resolvers";
+import presetIcons from "@unocss/preset-icons";
 
 // https://v3.nuxtjs.org/api/configuration/nuxt.config
 export default defineNuxtConfig({
@@ -35,7 +36,27 @@ export default defineNuxtConfig({
     attributify: false, // enabled "@unocss/preset-attributify"
     // core options
     shortcuts: [],
+    safelist: [
+      "i-mdi-home",
+      "i-mdi-book-open-page-variant-outline",
+      "i-mdi-image-edit-outline",
+      "i-mdi-link",
+      "i-mdi-logout",
+    ],
     rules: [],
+    presets: [
+      presetIcons({
+        extraProperties: {
+          display: "inline-block",
+          "vertical-align": "middle",
+          // ...
+        },
+        collections: {
+          mdi: () =>
+            import("@iconify-json/mdi/icons.json").then((i) => i.default),
+        },
+      }),
+    ],
   },
   css: ["@/assets/css/main.css"],
   build: {
