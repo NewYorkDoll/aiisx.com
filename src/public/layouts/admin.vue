@@ -1,3 +1,19 @@
+<script setup lang="ts">
+import { adminSidebarOptions } from "@/lib/core/navigation";
+import { useBaseState } from "~~/stores/state";
+const props = reactive({
+  loading: false,
+  error: "",
+});
+
+const state = useBaseState();
+const router = useRouter();
+if (!state.base || !state.base.self) {
+  router.replace("/404");
+}
+console.log(state.base?.self);
+</script>
+
 <template>
   <n-layout
     position="absolute"
@@ -46,11 +62,3 @@
     </n-layout>
   </n-layout>
 </template>
-
-<script setup lang="ts">
-import { adminSidebarOptions } from "@/lib/core/navigation";
-const props = reactive({
-  loading: false,
-  error: "",
-});
-</script>

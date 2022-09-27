@@ -3,6 +3,10 @@ import { useBaseState } from "@/stores/state";
 import { menuOptions } from "@/lib/core/navigation";
 
 const state = useBaseState();
+
+const sudoUrl = computed(() => {
+  return state.base && state.base.self ? "/admin" : "/-/auth";
+});
 </script>
 <template>
   <ul class="flex flex-wrap justify-center md:justify-start md:gap-x-2">
@@ -12,10 +16,10 @@ const state = useBaseState();
       </router-link>
     </li>
     <li>
-      <a :href="state.base?.githubUser.htmlurl" target="_blank">github</a>
+      <a :href="state.base?.githubUser.htmlurl!" target="_blank">github</a>
     </li>
 
-    <li><a href="/chat" target="_blank">discord</a></li>
+    <li><a :href="sudoUrl" target="_blank">sudo</a></li>
   </ul>
 </template>
 

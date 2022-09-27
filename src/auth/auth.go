@@ -2,14 +2,14 @@ package auth
 
 import (
 	"context"
-	"fmt"
 	"net/http"
-	"reflect"
 	"strconv"
+	"strings"
 	"sync"
-	"unsafe"
+	"sync/atomic"
 
 	"aiisx.com/src/database"
+	"aiisx.com/src/ent"
 	"github.com/apex/log"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/sessions"
@@ -26,6 +26,8 @@ var (
 	DefaulltCookieMaxAge = 30 * 86400
 
 	gothInit sync.Once
+
+	User atomic.Pointer[ent.User]
 )
 
 const (
@@ -41,15 +43,14 @@ const (
 	nextSessionKey = "_next"
 )
 
-type AuthHandler[Ident any, ID comparable] struct {
+type AuthHandler[Ident ent.User, ID comparable] struct {
 	Auth         database.AuthService[Ident, ID]
 	Ident        *Ident
 	ID           *ID
-	router       http.Handler
 	errorHandler func(w http.ResponseWriter, r *http.Request, err error) (ok bool)
 }
 
-func NewAuthHandler[Ident any, ID comparable](auth database.AuthService[Ident, ID], authKey, encryptKey []byte) *AuthHandler[Ident, ID] {
+func NewAuthHandler[Ident ent.User, ID comparable](auth database.AuthService[Ident, ID], authKey, encryptKey []byte) *AuthHandler[Ident, ID] {
 
 	gothInit.Do(func() {
 		authStore := sessions.NewCookieStore(authKey, encryptKey)
@@ -71,14 +72,14 @@ func NewAuthHandler[Ident any, ID comparable](auth database.AuthService[Ident, I
 	return h
 }
 
-func (h *AuthHandler[Ident, ID]) AddToContext(r context.Context) gin.HandlerFunc {
+func (h *AuthHandler[Ident, ID]) AddToContext() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		_, ok := r.Value(contextAuth).(*Ident)
-		if ok { // Already in the context.
+		u := User.Load()
+		if u != nil {
 			ctx.Next()
 			return
 		}
-
+		r := ctx.Request.Context()
 		id := h.getIDFromSession(ctx.Request)
 		if id == nil {
 			ctx.Next()
@@ -91,20 +92,14 @@ func (h *AuthHandler[Ident, ID]) AddToContext(r context.Context) gin.HandlerFunc
 			ctx.Next()
 			return
 		}
-
-		r = context.WithValue(r, contextAuth, ident)
-		r = context.WithValue(ctx, contextAuthID, *id)
-
-		roles, err := h.Auth.Roles(r, *id)
-		if err != nil {
-			log.FromContext(r).WithError(err).WithField("user_id", *id).Warn("failed to get roles from session (but id set)")
-		} else {
-			r = context.WithValue(ctx, contextAuthRoles, roles)
-		}
+		User.Store(ident)
 		ctx.Next()
 	}
 }
 
+func (h *AuthHandler[Ident, ID]) Logout() {
+	User.Store(nil)
+}
 func (h *AuthHandler[Ident, ID]) getIDFromSession(r *http.Request) *ID {
 	key, _ := gothic.GetFromSession(authSessionKey, r)
 	if key == "" {
@@ -149,34 +144,31 @@ func (h *AuthHandler[Ident, ID]) convertID(in string) (ID, error) {
 }
 
 func IdentFromContext[Ident any](ctx context.Context) (auth *Ident) {
-	printContextInternals(ctx, false)
 	auth, _ = ctx.Value(contextAuth).(*Ident)
 	return auth
 }
 
-func printContextInternals(ctx interface{}, inner bool) {
-	contextValues := reflect.ValueOf(ctx).Elem()
-	contextKeys := reflect.TypeOf(ctx).Elem()
+func (h *AuthHandler[Ident, ID]) RolesFromContext(ctx context.Context) (roles AuthRoles) {
+	return RolesFromContext(ctx)
+}
 
-	if !inner {
-		fmt.Printf("\nFields for %s.%s\n", contextKeys.PkgPath(), contextKeys.Name())
+type AuthRoles []string
+
+func RolesFromContext(ctx context.Context) (roles AuthRoles) {
+	roles, _ = ctx.Value(contextAuthRoles).([]string)
+	return AuthRoles(roles)
+}
+
+func (r AuthRoles) Has(role string) bool {
+	if len(r) == 0 {
+		return false
 	}
 
-	if contextKeys.Kind() == reflect.Struct {
-		for i := 0; i < contextValues.NumField(); i++ {
-			reflectValue := contextValues.Field(i)
-			reflectValue = reflect.NewAt(reflectValue.Type(), unsafe.Pointer(reflectValue.UnsafeAddr())).Elem()
-
-			reflectField := contextKeys.Field(i)
-
-			if reflectField.Name == "Context" {
-				printContextInternals(reflectValue.Interface(), true)
-			} else {
-				fmt.Printf("field name: %+v\n", reflectField.Name)
-				fmt.Printf("value: %+v\n", reflectValue.Interface())
-			}
+	for _, r := range r {
+		if strings.EqualFold(r, role) {
+			return true
 		}
-	} else {
-		fmt.Printf("context is empty (int)\n")
 	}
+
+	return false
 }

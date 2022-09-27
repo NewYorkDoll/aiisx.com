@@ -1,4 +1,11 @@
 query base {
+  self {
+    id
+    name
+    login
+    avatarURL
+  }
+
   githubUser {
     login
     name
@@ -26,32 +33,35 @@ query base {
   }
 }
 
-
 query getEvents(
-    $count: Int = 25
-    $cursor: Cursor = null
-    $order: OrderDirection = DESC
-    $orderBy: GithubEventOrderField = CREATED_AT
+  $count: Int = 25
+  $cursor: Cursor = null
+  $order: OrderDirection = DESC
+  $orderBy: GithubEventOrderField = CREATED_AT
 ) {
-    githubevents(first: $count, after: $cursor, orderBy: { direction: $order, field: $orderBy }) {
-        edges {
-            node {
-                id
-                eventType
-                createdAt
-                actor {
-                    login
-                    avatarURL
-                }
-                repo {
-                    name
-                }
-                payload
-            }
+  githubevents(
+    first: $count
+    after: $cursor
+    orderBy: { direction: $order, field: $orderBy }
+  ) {
+    edges {
+      node {
+        id
+        eventType
+        createdAt
+        actor {
+          login
+          avatarURL
         }
-        pageInfo {
-            hasNextPage
-            endCursor
+        repo {
+          name
         }
+        payload
+      }
     }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
 }

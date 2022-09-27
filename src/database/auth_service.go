@@ -23,8 +23,8 @@ type authService struct {
 	admin int
 }
 
-type AuthService[Ident any, ID comparable] interface {
-	Get(context.Context, ID) (*Ident, error)
+type AuthService[Ident ent.User, ID comparable] interface {
+	Get(context.Context, ID) (*ent.User, error)
 	Set(context.Context, *goth.User) (ID, error)
 	Roles(context.Context, ID) ([]string, error)
 }

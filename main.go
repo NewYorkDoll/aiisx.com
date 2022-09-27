@@ -67,7 +67,7 @@ func main() {
 	// 模式设置
 	gin.SetMode(config.GIN_MODE)
 	r = gin.New()
-	r.Use(auth.AddToContext(ctx))
+	r.Use(auth.AddToContext())
 	goth.UseProviders(
 		github.New(
 			config.Github.ClientID,
@@ -85,10 +85,8 @@ func main() {
 				return
 			}
 			gothic.StoreInSession("_auth", fmt.Sprintf("%v", id), ctx.Request, ctx.Writer)
-			ctx.Redirect(http.StatusMovedPermanently, "/")
-		} else {
-			gothic.BeginAuthHandler(ctx.Writer, ctx.Request)
 		}
+		ctx.Redirect(http.StatusMovedPermanently, "/")
 	})
 	gh.NewChient(ctx, config.GITHUB_ACCESS_TOKEN)
 	// graphql服务
@@ -98,15 +96,13 @@ func main() {
 			"message": "hello /-/",
 		})
 	})
-	r.GET("/auth", func(ctx *gin.Context) {
-		provider := "github"
-		ctx.Request = contextWithProviderName(ctx, provider)
-		gothic.BeginAuthHandler(ctx.Writer, ctx.Request)
+	r.GET("/-/auth", func(ctx *gin.Context) {
+		gothic.BeginAuthHandler(ctx.Writer, gothic.GetContextWithProvider(ctx.Request, "github"))
 	})
 	r.GET("/-/auth/logout", func(ctx *gin.Context) {
-		provider := "github"
-		ctx.Request = contextWithProviderName(ctx, provider)
-		err := gothic.Logout(ctx.Writer, ctx.Request)
+		ctx.Header("Cache-Control", "no-store")
+		err := gothic.Logout(ctx.Writer, gothic.GetContextWithProvider(ctx.Request, "github"))
+		auth.Logout()
 		if err != nil {
 			ctx.JSON(http.StatusFound, gin.H{
 				"message": err,
@@ -118,8 +114,10 @@ func main() {
 	r.GET("/posts", ReverseProxy())
 	r.GET("/repost", ReverseProxy())
 	r.GET("/admin/*id", ReverseProxy())
-	r.GET("/_nuxt/*id", ReverseProxy1())
-	r.GET("/graphql", playgroundHandler())
+	r.GET("/_nuxt/*id", ReverseProxy())
+	r.GET("/graphql", func(c *gin.Context) {
+		playground.Handler("GraphQL playground", "/query").ServeHTTP(c.Writer, c.Request)
+	})
 
 	r.POST("/query", func(c *gin.Context) {
 		srv.ServeHTTP(c.Writer, c.Request)
@@ -157,21 +155,6 @@ func main() {
 }
 
 func ReverseProxy() gin.HandlerFunc {
-
-	target := "localhost:3000"
-
-	return func(c *gin.Context) {
-		director := func(req *http.Request) {
-			req.URL.Scheme = "http"
-			req.URL.Host = target
-			req.Host = target
-		}
-		proxy := &httputil.ReverseProxy{Director: director}
-		proxy.ServeHTTP(c.Writer, c.Request)
-	}
-}
-
-func ReverseProxy1() gin.HandlerFunc {
 
 	target := "localhost:3000"
 
