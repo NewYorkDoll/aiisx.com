@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httputil"
+	"strconv"
 
 	"aiisx.com/src/auth"
 	"aiisx.com/src/config"
@@ -109,6 +110,7 @@ func main() {
 		ctx.Redirect(http.StatusMovedPermanently, "/")
 	})
 	r.GET("/", ReverseProxy())
+	r.GET("/error/*id", ReverseProxy())
 	r.GET("/posts", ReverseProxy())
 	r.GET("/repost", ReverseProxy())
 	r.GET("/admin/*id", ReverseProxy())
@@ -147,6 +149,16 @@ func main() {
 		logger.Info("server run!")
 		return r.Run()
 	})
+
+	r.NoRoute(func(c *gin.Context) {
+		code := c.Writer.Status()
+		fmt.Println(code)
+		url := "/error/" + strconv.FormatInt(int64(code), 10)
+		// 实现内部重定向
+		c.Redirect(http.StatusMovedPermanently, url)
+
+	})
+
 	if e := g.Wait(); e != nil {
 		log.Fatal(e.Error())
 	}

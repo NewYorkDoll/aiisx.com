@@ -1,17 +1,14 @@
 <script setup lang="ts">
   import type { ResultProps } from "naive-ui"
   
-  const props = defineProps<{
-    catchall: string | Array<string>
-    error?: Error | null
-  }>()
+  const route = useRoute()
+  console.log(route);
   
-  const source = computed(() => (typeof props.catchall === "string" ? [props.catchall] : props.catchall))
+  const source = computed(() => route.params.catchall)
   const errorCode = ref<ResultProps["status"]>()
   const errorTitle = ref<string>("")
   const supported = ["info", "success", "warning", "error", "404", "403", "500", "418"]
   
-  onMounted(() => {
     for (const item of source.value) {
       if (supported.includes(item)) {
         errorCode.value = item as ResultProps["status"]
@@ -30,7 +27,6 @@
     if (errorTitle.value == "") {
       errorTitle.value = errorCode.value!
     }
-  })
   </script>
   
 
@@ -39,7 +35,7 @@
     <n-result
       :status="errorCode"
       :title="'Error code: ' + errorTitle"
-      :description="props.error ? props.error.toString() : 'You know life is always ridiculous.'"
+      :description="'You know life is always ridiculous.'"
     >
       <template #footer>
         <n-button-group>
