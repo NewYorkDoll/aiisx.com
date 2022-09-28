@@ -27,6 +27,9 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       GQL_HOST: "http://localhost:8080/query", // overwritten by process.env.GQL_HOST
+      gql: {
+        watch: true,
+      },
     },
   },
   unocss: {
@@ -74,6 +77,9 @@ export default defineNuxtConfig({
     },
   },
   vite: {
+    ssr: {
+      noExternal: ["codemirror"],
+    },
     optimizeDeps: {
       include:
         process.env.NODE_ENV === "development"

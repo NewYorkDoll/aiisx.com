@@ -19,7 +19,7 @@ const sudoUrl = computed(() => {
       <a :href="state.base?.githubUser.htmlurl!" target="_blank">github</a>
     </li>
 
-    <li><a :href="sudoUrl" target="_blank">sudo</a></li>
+    <li><a :href="sudoUrl">sudo</a></li>
   </ul>
 </template>
 

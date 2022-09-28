@@ -65,3 +65,69 @@ query getEvents(
     }
   }
 }
+
+query getPosts(
+  $first: Int = null
+  $last: Int = null
+  $before: Cursor = null
+  $after: Cursor = null
+  $order: OrderDirection = DESC
+  $orderBy: PostOrderField = DATE
+  $where: PostWhereInput
+) {
+  posts(
+    first: $first
+    last: $last
+    before: $before
+    after: $after
+    where: $where
+    orderBy: { direction: $order, field: $orderBy }
+  ) {
+    edges {
+      node {
+        id
+        title
+        summary
+        slug
+        public
+        publishedAt
+        viewCount
+        labels {
+          edges {
+            node {
+              id
+              name
+            }
+          }
+        }
+        author {
+          name
+          login
+          avatarURL
+          htmlURL
+        }
+      }
+    }
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+  }
+}
+
+query getLabels($where: LabelWhereInput) {
+  labels(first: 300, where: $where) {
+    edges {
+      node {
+        id
+        name
+
+        posts {
+          totalCount
+        }
+      }
+    }
+  }
+}

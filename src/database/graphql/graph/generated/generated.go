@@ -42,7 +42,10 @@ type Config struct {
 type ResolverRoot interface {
 	GithubRepository() GithubRepositoryResolver
 	GithubUser() GithubUserResolver
+	Label() LabelResolver
+	Mutation() MutationResolver
 	Query() QueryResolver
+	CreateLabelInput() CreateLabelInputResolver
 }
 
 type DirectiveRoot struct {
@@ -144,8 +147,11 @@ type ComplexityRoot struct {
 	}
 
 	Label struct {
-		ID    func(childComplexity int) int
-		Posts func(childComplexity int, after *ent.Cursor, first *int, before *ent.Cursor, last *int, orderBy *ent.PostOrder, where *ent.PostWhereInput) int
+		CreateTime func(childComplexity int) int
+		ID         func(childComplexity int) int
+		Name       func(childComplexity int) int
+		Posts      func(childComplexity int, after *ent.Cursor, first *int, before *ent.Cursor, last *int, orderBy *ent.PostOrder, where *ent.PostWhereInput) int
+		UpdateTime func(childComplexity int) int
 	}
 
 	LabelConnection struct {
@@ -168,6 +174,13 @@ type ComplexityRoot struct {
 	Link struct {
 		Name func(childComplexity int) int
 		URL  func(childComplexity int) int
+	}
+
+	Mutation struct {
+		CreateLabel func(childComplexity int, input ent.CreateLabelInput) int
+		DeleteLabel func(childComplexity int, id string) int
+		Ping        func(childComplexity int) int
+		UpdateLabel func(childComplexity int, id string, input ent.UpdateLabelInput) int
 	}
 
 	PageInfo struct {
@@ -268,6 +281,17 @@ type GithubUserResolver interface {
 	CreatedAt(ctx context.Context, obj *github.User) (*model.Timestamp, error)
 	UpdatedAt(ctx context.Context, obj *github.User) (*model.Timestamp, error)
 }
+type LabelResolver interface {
+	CreateTime(ctx context.Context, obj *ent.Label) (*time.Time, error)
+	UpdateTime(ctx context.Context, obj *ent.Label) (*time.Time, error)
+	Name(ctx context.Context, obj *ent.Label) (string, error)
+}
+type MutationResolver interface {
+	Ping(ctx context.Context) (*string, error)
+	CreateLabel(ctx context.Context, input ent.CreateLabelInput) (*ent.Label, error)
+	UpdateLabel(ctx context.Context, id string, input ent.UpdateLabelInput) (*ent.Label, error)
+	DeleteLabel(ctx context.Context, id string) (string, error)
+}
 type QueryResolver interface {
 	Node(ctx context.Context, id string) (ent.Noder, error)
 	Nodes(ctx context.Context, ids []string) ([]ent.Noder, error)
@@ -280,6 +304,14 @@ type QueryResolver interface {
 	CodingStats(ctx context.Context) (*models.CodingStats, error)
 	Self(ctx context.Context) (*ent.User, error)
 	Version(ctx context.Context) (*model.VersionInfo, error)
+}
+
+type CreateLabelInputResolver interface {
+	CreateTime(ctx context.Context, obj *ent.CreateLabelInput, data *time.Time) error
+	UpdateTime(ctx context.Context, obj *ent.CreateLabelInput, data *time.Time) error
+	Name(ctx context.Context, obj *ent.CreateLabelInput, data string) error
+
+	GithubRepositoryIDs(ctx context.Context, obj *ent.CreateLabelInput, data []string) error
 }
 
 type executableSchema struct {
@@ -745,12 +777,26 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.GithubUser.UpdatedAt(childComplexity), true
 
+	case "Label.createTime":
+		if e.complexity.Label.CreateTime == nil {
+			break
+		}
+
+		return e.complexity.Label.CreateTime(childComplexity), true
+
 	case "Label.id":
 		if e.complexity.Label.ID == nil {
 			break
 		}
 
 		return e.complexity.Label.ID(childComplexity), true
+
+	case "Label.name":
+		if e.complexity.Label.Name == nil {
+			break
+		}
+
+		return e.complexity.Label.Name(childComplexity), true
 
 	case "Label.posts":
 		if e.complexity.Label.Posts == nil {
@@ -763,6 +809,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Label.Posts(childComplexity, args["after"].(*ent.Cursor), args["first"].(*int), args["before"].(*ent.Cursor), args["last"].(*int), args["orderBy"].(*ent.PostOrder), args["where"].(*ent.PostWhereInput)), true
+
+	case "Label.updateTime":
+		if e.complexity.Label.UpdateTime == nil {
+			break
+		}
+
+		return e.complexity.Label.UpdateTime(childComplexity), true
 
 	case "LabelConnection.edges":
 		if e.complexity.LabelConnection.Edges == nil {
@@ -833,6 +886,49 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Link.URL(childComplexity), true
+
+	case "Mutation.createLabel":
+		if e.complexity.Mutation.CreateLabel == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createLabel_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateLabel(childComplexity, args["input"].(ent.CreateLabelInput)), true
+
+	case "Mutation.deleteLabel":
+		if e.complexity.Mutation.DeleteLabel == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteLabel_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteLabel(childComplexity, args["id"].(string)), true
+
+	case "Mutation.ping":
+		if e.complexity.Mutation.Ping == nil {
+			break
+		}
+
+		return e.complexity.Mutation.Ping(childComplexity), true
+
+	case "Mutation.updateLabel":
+		if e.complexity.Mutation.UpdateLabel == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateLabel_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateLabel(childComplexity, args["id"].(string), args["input"].(ent.UpdateLabelInput)), true
 
 	case "PageInfo.endCursor":
 		if e.complexity.PageInfo.EndCursor == nil {
@@ -1313,6 +1409,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputGithubEventWhereInput,
 		ec.unmarshalInputGithubRepositoryOrder,
 		ec.unmarshalInputGithubRepositoryWhereInput,
+		ec.unmarshalInputLabelOrder,
 		ec.unmarshalInputLabelWhereInput,
 		ec.unmarshalInputPostOrder,
 		ec.unmarshalInputPostWhereInput,
@@ -1332,6 +1429,21 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 			first = false
 			ctx = graphql.WithUnmarshalerMap(ctx, inputUnmarshalMap)
 			data := ec._Query(ctx, rc.Operation.SelectionSet)
+			var buf bytes.Buffer
+			data.MarshalGQL(&buf)
+
+			return &graphql.Response{
+				Data: buf.Bytes(),
+			}
+		}
+	case ast.Mutation:
+		return func(ctx context.Context) *graphql.Response {
+			if !first {
+				return nil
+			}
+			first = false
+			ctx = graphql.WithUnmarshalerMap(ctx, inputUnmarshalMap)
+			data := ec._Mutation(ctx, rc.Operation.SelectionSet)
 			var buf bytes.Buffer
 			data.MarshalGQL(&buf)
 
@@ -1365,14 +1477,24 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
-	{Name: "../schema/ent.graphqls", Input: `directive @goField(forceResolver: Boolean, name: String) on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
-directive @goModel(model: String, models: [String!]) on OBJECT | INPUT_OBJECT | SCALAR | ENUM | INTERFACE | UNION
+	{Name: "../schema/ent.graphqls", Input: `directive @goField(
+  forceResolver: Boolean
+  name: String
+) on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+directive @goModel(
+  model: String
+  models: [String!]
+) on OBJECT | INPUT_OBJECT | SCALAR | ENUM | INTERFACE | UNION
 """
 CreateLabelInput is used for create Label object.
 Input was generated by ent.
 """
 input CreateLabelInput {
+  createTime: Time
+  updateTime: Time
+  name: String!
   postIDs: [ID!]
+  githubRepositoryIDs: [ID!]
 }
 """
 CreatePostInput is used for create Post object.
@@ -1405,30 +1527,52 @@ type GithubEvent implements Node {
   repo: GithubEventRepo!
   payload: Map!
 }
-"""A connection to a list of items."""
+"""
+A connection to a list of items.
+"""
 type GithubEventConnection {
-  """A list of edges."""
+  """
+  A list of edges.
+  """
   edges: [GithubEventEdge]
-  """Information to aid in pagination."""
+  """
+  Information to aid in pagination.
+  """
   pageInfo: PageInfo!
-  """Identifies the total count of items in the connection."""
+  """
+  Identifies the total count of items in the connection.
+  """
   totalCount: Int!
 }
-"""An edge in a connection."""
+"""
+An edge in a connection.
+"""
 type GithubEventEdge {
-  """The item at the end of the edge."""
+  """
+  The item at the end of the edge.
+  """
   node: GithubEvent
-  """A cursor for use in pagination."""
+  """
+  A cursor for use in pagination.
+  """
   cursor: Cursor!
 }
-"""Ordering options for GithubEvent connections"""
+"""
+Ordering options for GithubEvent connections
+"""
 input GithubEventOrder {
-  """The ordering direction."""
+  """
+  The ordering direction.
+  """
   direction: OrderDirection! = ASC
-  """The field by which to order GithubEvents."""
+  """
+  The field by which to order GithubEvents.
+  """
   field: GithubEventOrderField!
 }
-"""Properties by which GithubEvent connections can be ordered."""
+"""
+Properties by which GithubEvent connections can be ordered.
+"""
 enum GithubEventOrderField {
   EVENT_ID
   EVENT_TYPE
@@ -1444,7 +1588,9 @@ input GithubEventWhereInput {
   not: GithubEventWhereInput
   and: [GithubEventWhereInput!]
   or: [GithubEventWhereInput!]
-  """id field predicates"""
+  """
+  id field predicates
+  """
   id: ID
   idNEQ: ID
   idIn: [ID!]
@@ -1453,7 +1599,9 @@ input GithubEventWhereInput {
   idGTE: ID
   idLT: ID
   idLTE: ID
-  """event_id field predicates"""
+  """
+  event_id field predicates
+  """
   eventID: String
   eventIDNEQ: String
   eventIDIn: [String!]
@@ -1467,7 +1615,9 @@ input GithubEventWhereInput {
   eventIDHasSuffix: String
   eventIDEqualFold: String
   eventIDContainsFold: String
-  """event_type field predicates"""
+  """
+  event_type field predicates
+  """
   eventType: String
   eventTypeNEQ: String
   eventTypeIn: [String!]
@@ -1481,7 +1631,9 @@ input GithubEventWhereInput {
   eventTypeHasSuffix: String
   eventTypeEqualFold: String
   eventTypeContainsFold: String
-  """created_at field predicates"""
+  """
+  created_at field predicates
+  """
   createdAt: Time
   createdAtNEQ: Time
   createdAtIn: [Time!]
@@ -1490,10 +1642,14 @@ input GithubEventWhereInput {
   createdAtGTE: Time
   createdAtLT: Time
   createdAtLTE: Time
-  """public field predicates"""
+  """
+  public field predicates
+  """
   public: Boolean
   publicNEQ: Boolean
-  """actor_id field predicates"""
+  """
+  actor_id field predicates
+  """
   actorID: Int
   actorIDNEQ: Int
   actorIDIn: [Int!]
@@ -1502,7 +1658,9 @@ input GithubEventWhereInput {
   actorIDGTE: Int
   actorIDLT: Int
   actorIDLTE: Int
-  """repo_id field predicates"""
+  """
+  repo_id field predicates
+  """
   repoID: Int
   repoIDNEQ: Int
   repoIDIn: [Int!]
@@ -1534,30 +1692,52 @@ type GithubRepository implements Node {
   updatedAt: Time
   license: GithubLicense
 }
-"""A connection to a list of items."""
+"""
+A connection to a list of items.
+"""
 type GithubRepositoryConnection {
-  """A list of edges."""
+  """
+  A list of edges.
+  """
   edges: [GithubRepositoryEdge]
-  """Information to aid in pagination."""
+  """
+  Information to aid in pagination.
+  """
   pageInfo: PageInfo!
-  """Identifies the total count of items in the connection."""
+  """
+  Identifies the total count of items in the connection.
+  """
   totalCount: Int!
 }
-"""An edge in a connection."""
+"""
+An edge in a connection.
+"""
 type GithubRepositoryEdge {
-  """The item at the end of the edge."""
+  """
+  The item at the end of the edge.
+  """
   node: GithubRepository
-  """A cursor for use in pagination."""
+  """
+  A cursor for use in pagination.
+  """
   cursor: Cursor!
 }
-"""Ordering options for GithubRepository connections"""
+"""
+Ordering options for GithubRepository connections
+"""
 input GithubRepositoryOrder {
-  """The ordering direction."""
+  """
+  The ordering direction.
+  """
   direction: OrderDirection! = ASC
-  """The field by which to order GithubRepositories."""
+  """
+  The field by which to order GithubRepositories.
+  """
   field: GithubRepositoryOrderField!
 }
-"""Properties by which GithubRepository connections can be ordered."""
+"""
+Properties by which GithubRepository connections can be ordered.
+"""
 enum GithubRepositoryOrderField {
   NAME
   FULL_NAME
@@ -1575,7 +1755,9 @@ input GithubRepositoryWhereInput {
   not: GithubRepositoryWhereInput
   and: [GithubRepositoryWhereInput!]
   or: [GithubRepositoryWhereInput!]
-  """id field predicates"""
+  """
+  id field predicates
+  """
   id: ID
   idNEQ: ID
   idIn: [ID!]
@@ -1584,7 +1766,9 @@ input GithubRepositoryWhereInput {
   idGTE: ID
   idLT: ID
   idLTE: ID
-  """repo_id field predicates"""
+  """
+  repo_id field predicates
+  """
   repoID: Int
   repoIDNEQ: Int
   repoIDIn: [Int!]
@@ -1593,7 +1777,9 @@ input GithubRepositoryWhereInput {
   repoIDGTE: Int
   repoIDLT: Int
   repoIDLTE: Int
-  """name field predicates"""
+  """
+  name field predicates
+  """
   name: String
   nameNEQ: String
   nameIn: [String!]
@@ -1607,7 +1793,9 @@ input GithubRepositoryWhereInput {
   nameHasSuffix: String
   nameEqualFold: String
   nameContainsFold: String
-  """full_name field predicates"""
+  """
+  full_name field predicates
+  """
   fullName: String
   fullNameNEQ: String
   fullNameIn: [String!]
@@ -1621,7 +1809,9 @@ input GithubRepositoryWhereInput {
   fullNameHasSuffix: String
   fullNameEqualFold: String
   fullNameContainsFold: String
-  """owner_login field predicates"""
+  """
+  owner_login field predicates
+  """
   ownerLogin: String
   ownerLoginNEQ: String
   ownerLoginIn: [String!]
@@ -1635,10 +1825,14 @@ input GithubRepositoryWhereInput {
   ownerLoginHasSuffix: String
   ownerLoginEqualFold: String
   ownerLoginContainsFold: String
-  """public field predicates"""
+  """
+  public field predicates
+  """
   public: Boolean
   publicNEQ: Boolean
-  """html_url field predicates"""
+  """
+  html_url field predicates
+  """
   htmlURL: String
   htmlURLNEQ: String
   htmlURLIn: [String!]
@@ -1652,7 +1846,9 @@ input GithubRepositoryWhereInput {
   htmlURLHasSuffix: String
   htmlURLEqualFold: String
   htmlURLContainsFold: String
-  """description field predicates"""
+  """
+  description field predicates
+  """
   description: String
   descriptionNEQ: String
   descriptionIn: [String!]
@@ -1668,10 +1864,14 @@ input GithubRepositoryWhereInput {
   descriptionNotNil: Boolean
   descriptionEqualFold: String
   descriptionContainsFold: String
-  """fork field predicates"""
+  """
+  fork field predicates
+  """
   fork: Boolean
   forkNEQ: Boolean
-  """homepage field predicates"""
+  """
+  homepage field predicates
+  """
   homepage: String
   homepageNEQ: String
   homepageIn: [String!]
@@ -1687,7 +1887,9 @@ input GithubRepositoryWhereInput {
   homepageNotNil: Boolean
   homepageEqualFold: String
   homepageContainsFold: String
-  """star_count field predicates"""
+  """
+  star_count field predicates
+  """
   starCount: Int
   starCountNEQ: Int
   starCountIn: [Int!]
@@ -1696,7 +1898,9 @@ input GithubRepositoryWhereInput {
   starCountGTE: Int
   starCountLT: Int
   starCountLTE: Int
-  """default_branch field predicates"""
+  """
+  default_branch field predicates
+  """
   defaultBranch: String
   defaultBranchNEQ: String
   defaultBranchIn: [String!]
@@ -1710,16 +1914,24 @@ input GithubRepositoryWhereInput {
   defaultBranchHasSuffix: String
   defaultBranchEqualFold: String
   defaultBranchContainsFold: String
-  """is_template field predicates"""
+  """
+  is_template field predicates
+  """
   isTemplate: Boolean
   isTemplateNEQ: Boolean
-  """has_issues field predicates"""
+  """
+  has_issues field predicates
+  """
   hasIssues: Boolean
   hasIssuesNEQ: Boolean
-  """archived field predicates"""
+  """
+  archived field predicates
+  """
   archived: Boolean
   archivedNEQ: Boolean
-  """pushed_at field predicates"""
+  """
+  pushed_at field predicates
+  """
   pushedAt: Time
   pushedAtNEQ: Time
   pushedAtIn: [Time!]
@@ -1730,7 +1942,9 @@ input GithubRepositoryWhereInput {
   pushedAtLTE: Time
   pushedAtIsNil: Boolean
   pushedAtNotNil: Boolean
-  """created_at field predicates"""
+  """
+  created_at field predicates
+  """
   createdAt: Time
   createdAtNEQ: Time
   createdAtIn: [Time!]
@@ -1739,7 +1953,9 @@ input GithubRepositoryWhereInput {
   createdAtGTE: Time
   createdAtLT: Time
   createdAtLTE: Time
-  """updated_at field predicates"""
+  """
+  updated_at field predicates
+  """
   updatedAt: Time
   updatedAtNEQ: Time
   updatedAtIn: [Time!]
@@ -1751,44 +1967,95 @@ input GithubRepositoryWhereInput {
   updatedAtIsNil: Boolean
   updatedAtNotNil: Boolean
 }
+
 type Label implements Node {
   id: ID!
+  createTime: Time!
+  updateTime: Time!
+  name: String!
   posts(
-    """Returns the elements in the list that come after the specified cursor."""
+    """
+    Returns the elements in the list that come after the specified cursor.
+    """
     after: Cursor
 
-    """Returns the first _n_ elements from the list."""
+    """
+    Returns the first _n_ elements from the list.
+    """
     first: Int
 
-    """Returns the elements in the list that come before the specified cursor."""
+    """
+    Returns the elements in the list that come before the specified cursor.
+    """
     before: Cursor
 
-    """Returns the last _n_ elements from the list."""
+    """
+    Returns the last _n_ elements from the list.
+    """
     last: Int
 
-    """Ordering options for Posts returned from the connection."""
+    """
+    Ordering options for Posts returned from the connection.
+    """
     orderBy: PostOrder
 
-    """Filtering options for Posts returned from the connection."""
+    """
+    Filtering options for Posts returned from the connection.
+    """
     where: PostWhereInput
   ): PostConnection!
 }
-"""A connection to a list of items."""
+"""
+A connection to a list of items.
+"""
 type LabelConnection {
-  """A list of edges."""
+  """
+  A list of edges.
+  """
   edges: [LabelEdge]
-  """Information to aid in pagination."""
+  """
+  Information to aid in pagination.
+  """
   pageInfo: PageInfo!
-  """Identifies the total count of items in the connection."""
+  """
+  Identifies the total count of items in the connection.
+  """
   totalCount: Int!
 }
-"""An edge in a connection."""
+"""
+An edge in a connection.
+"""
 type LabelEdge {
-  """The item at the end of the edge."""
+  """
+  The item at the end of the edge.
+  """
   node: Label
-  """A cursor for use in pagination."""
+  """
+  A cursor for use in pagination.
+  """
   cursor: Cursor!
 }
+
+"""
+Ordering options for Label connections
+"""
+input LabelOrder {
+  """
+  The ordering direction.
+  """
+  direction: OrderDirection! = ASC
+  # """
+  # The field by which to order Labels.
+  # """
+  # field: LabelOrderField!
+}
+# """
+# Properties by which Label connections can be ordered.
+# """
+# enum LabelOrderField {
+#   NAME
+# }
+
 """
 LabelWhereInput is used for filtering Label objects.
 Input was generated by ent.
@@ -1797,7 +2064,9 @@ input LabelWhereInput {
   not: LabelWhereInput
   and: [LabelWhereInput!]
   or: [LabelWhereInput!]
-  """id field predicates"""
+  """
+  id field predicates
+  """
   id: ID
   idNEQ: ID
   idIn: [ID!]
@@ -1806,7 +2075,9 @@ input LabelWhereInput {
   idGTE: ID
   idLT: ID
   idLTE: ID
-  """posts edge predicates"""
+  """
+  posts edge predicates
+  """
   hasPosts: Boolean
   hasPostsWith: [PostWhereInput!]
 }
@@ -1815,14 +2086,22 @@ An object with an ID.
 Follows the [Relay Global Object Identification Specification](https://relay.dev/graphql/objectidentification.htm)
 """
 interface Node @goModel(model: "aiisx.com/src/ent.Noder") {
-  """The id of the object."""
+  """
+  The id of the object.
+  """
   id: ID!
 }
-"""Possible directions in which to order a list of items when provided an ` + "`" + `orderBy` + "`" + ` argument."""
+"""
+Possible directions in which to order a list of items when provided an ` + "`" + `orderBy` + "`" + ` argument.
+"""
 enum OrderDirection {
-  """Specifies an ascending order for a given ` + "`" + `orderBy` + "`" + ` argument."""
+  """
+  Specifies an ascending order for a given ` + "`" + `orderBy` + "`" + ` argument.
+  """
   ASC
-  """Specifies a descending order for a given ` + "`" + `orderBy` + "`" + ` argument."""
+  """
+  Specifies a descending order for a given ` + "`" + `orderBy` + "`" + ` argument.
+  """
   DESC
 }
 """
@@ -1830,13 +2109,21 @@ Information about pagination in a connection.
 https://relay.dev/graphql/connections.htm#sec-undefined.PageInfo
 """
 type PageInfo {
-  """When paginating forwards, are there more items?"""
+  """
+  When paginating forwards, are there more items?
+  """
   hasNextPage: Boolean!
-  """When paginating backwards, are there more items?"""
+  """
+  When paginating backwards, are there more items?
+  """
   hasPreviousPage: Boolean!
-  """When paginating backwards, the cursor to continue."""
+  """
+  When paginating backwards, the cursor to continue.
+  """
   startCursor: Cursor
-  """When paginating forwards, the cursor to continue."""
+  """
+  When paginating forwards, the cursor to continue.
+  """
   endCursor: Cursor
 }
 type Post implements Node {
@@ -1853,46 +2140,78 @@ type Post implements Node {
   public: Boolean!
   author: User!
   labels(
-    """Returns the elements in the list that come after the specified cursor."""
+    """
+    Returns the elements in the list that come after the specified cursor.
+    """
     after: Cursor
 
-    """Returns the first _n_ elements from the list."""
+    """
+    Returns the first _n_ elements from the list.
+    """
     first: Int
 
-    """Returns the elements in the list that come before the specified cursor."""
+    """
+    Returns the elements in the list that come before the specified cursor.
+    """
     before: Cursor
 
-    """Returns the last _n_ elements from the list."""
+    """
+    Returns the last _n_ elements from the list.
+    """
     last: Int
 
-    """Filtering options for Labels returned from the connection."""
+    """
+    Filtering options for Labels returned from the connection.
+    """
     where: LabelWhereInput
   ): LabelConnection!
 }
-"""A connection to a list of items."""
+"""
+A connection to a list of items.
+"""
 type PostConnection {
-  """A list of edges."""
+  """
+  A list of edges.
+  """
   edges: [PostEdge]
-  """Information to aid in pagination."""
+  """
+  Information to aid in pagination.
+  """
   pageInfo: PageInfo!
-  """Identifies the total count of items in the connection."""
+  """
+  Identifies the total count of items in the connection.
+  """
   totalCount: Int!
 }
-"""An edge in a connection."""
+"""
+An edge in a connection.
+"""
 type PostEdge {
-  """The item at the end of the edge."""
+  """
+  The item at the end of the edge.
+  """
   node: Post
-  """A cursor for use in pagination."""
+  """
+  A cursor for use in pagination.
+  """
   cursor: Cursor!
 }
-"""Ordering options for Post connections"""
+"""
+Ordering options for Post connections
+"""
 input PostOrder {
-  """The ordering direction."""
+  """
+  The ordering direction.
+  """
   direction: OrderDirection! = ASC
-  """The field by which to order Posts."""
+  """
+  The field by which to order Posts.
+  """
   field: PostOrderField!
 }
-"""Properties by which Post connections can be ordered."""
+"""
+Properties by which Post connections can be ordered.
+"""
 enum PostOrderField {
   SLUG
   TITLE
@@ -1907,7 +2226,9 @@ input PostWhereInput {
   not: PostWhereInput
   and: [PostWhereInput!]
   or: [PostWhereInput!]
-  """id field predicates"""
+  """
+  id field predicates
+  """
   id: ID
   idNEQ: ID
   idIn: [ID!]
@@ -1916,7 +2237,9 @@ input PostWhereInput {
   idGTE: ID
   idLT: ID
   idLTE: ID
-  """create_time field predicates"""
+  """
+  create_time field predicates
+  """
   createTime: Time
   createTimeNEQ: Time
   createTimeIn: [Time!]
@@ -1925,7 +2248,9 @@ input PostWhereInput {
   createTimeGTE: Time
   createTimeLT: Time
   createTimeLTE: Time
-  """update_time field predicates"""
+  """
+  update_time field predicates
+  """
   updateTime: Time
   updateTimeNEQ: Time
   updateTimeIn: [Time!]
@@ -1934,7 +2259,9 @@ input PostWhereInput {
   updateTimeGTE: Time
   updateTimeLT: Time
   updateTimeLTE: Time
-  """slug field predicates"""
+  """
+  slug field predicates
+  """
   slug: String
   slugNEQ: String
   slugIn: [String!]
@@ -1948,7 +2275,9 @@ input PostWhereInput {
   slugHasSuffix: String
   slugEqualFold: String
   slugContainsFold: String
-  """title field predicates"""
+  """
+  title field predicates
+  """
   title: String
   titleNEQ: String
   titleIn: [String!]
@@ -1962,7 +2291,9 @@ input PostWhereInput {
   titleHasSuffix: String
   titleEqualFold: String
   titleContainsFold: String
-  """content field predicates"""
+  """
+  content field predicates
+  """
   content: String
   contentNEQ: String
   contentIn: [String!]
@@ -1976,7 +2307,9 @@ input PostWhereInput {
   contentHasSuffix: String
   contentEqualFold: String
   contentContainsFold: String
-  """content_html field predicates"""
+  """
+  content_html field predicates
+  """
   contentHTML: String
   contentHTMLNEQ: String
   contentHTMLIn: [String!]
@@ -1990,7 +2323,9 @@ input PostWhereInput {
   contentHTMLHasSuffix: String
   contentHTMLEqualFold: String
   contentHTMLContainsFold: String
-  """summary field predicates"""
+  """
+  summary field predicates
+  """
   summary: String
   summaryNEQ: String
   summaryIn: [String!]
@@ -2004,7 +2339,9 @@ input PostWhereInput {
   summaryHasSuffix: String
   summaryEqualFold: String
   summaryContainsFold: String
-  """published_at field predicates"""
+  """
+  published_at field predicates
+  """
   publishedAt: Time
   publishedAtNEQ: Time
   publishedAtIn: [Time!]
@@ -2013,7 +2350,9 @@ input PostWhereInput {
   publishedAtGTE: Time
   publishedAtLT: Time
   publishedAtLTE: Time
-  """view_count field predicates"""
+  """
+  view_count field predicates
+  """
   viewCount: Int
   viewCountNEQ: Int
   viewCountIn: [Int!]
@@ -2022,117 +2361,189 @@ input PostWhereInput {
   viewCountGTE: Int
   viewCountLT: Int
   viewCountLTE: Int
-  """public field predicates"""
+  """
+  public field predicates
+  """
   public: Boolean
   publicNEQ: Boolean
-  """author edge predicates"""
+  """
+  author edge predicates
+  """
   hasAuthor: Boolean
   hasAuthorWith: [UserWhereInput!]
-  """labels edge predicates"""
+  """
+  labels edge predicates
+  """
   hasLabels: Boolean
   hasLabelsWith: [LabelWhereInput!]
 }
 type Query {
-  """Fetches an object given its ID."""
+  """
+  Fetches an object given its ID.
+  """
   node(
-    """ID of the object."""
+    """
+    ID of the object.
+    """
     id: ID!
   ): Node
-  """Lookup nodes by a list of IDs."""
+  """
+  Lookup nodes by a list of IDs.
+  """
   nodes(
-    """The list of node IDs."""
+    """
+    The list of node IDs.
+    """
     ids: [ID!]!
   ): [Node]!
   githubevents(
-    """Returns the elements in the list that come after the specified cursor."""
+    """
+    Returns the elements in the list that come after the specified cursor.
+    """
     after: Cursor
 
-    """Returns the first _n_ elements from the list."""
+    """
+    Returns the first _n_ elements from the list.
+    """
     first: Int
 
-    """Returns the elements in the list that come before the specified cursor."""
+    """
+    Returns the elements in the list that come before the specified cursor.
+    """
     before: Cursor
 
-    """Returns the last _n_ elements from the list."""
+    """
+    Returns the last _n_ elements from the list.
+    """
     last: Int
 
-    """Ordering options for GithubEvents returned from the connection."""
+    """
+    Ordering options for GithubEvents returned from the connection.
+    """
     orderBy: GithubEventOrder
 
-    """Filtering options for GithubEvents returned from the connection."""
+    """
+    Filtering options for GithubEvents returned from the connection.
+    """
     where: GithubEventWhereInput
   ): GithubEventConnection!
   githubrepositories(
-    """Returns the elements in the list that come after the specified cursor."""
+    """
+    Returns the elements in the list that come after the specified cursor.
+    """
     after: Cursor
 
-    """Returns the first _n_ elements from the list."""
+    """
+    Returns the first _n_ elements from the list.
+    """
     first: Int
 
-    """Returns the elements in the list that come before the specified cursor."""
+    """
+    Returns the elements in the list that come before the specified cursor.
+    """
     before: Cursor
 
-    """Returns the last _n_ elements from the list."""
+    """
+    Returns the last _n_ elements from the list.
+    """
     last: Int
 
-    """Ordering options for GithubRepositories returned from the connection."""
+    """
+    Ordering options for GithubRepositories returned from the connection.
+    """
     orderBy: GithubRepositoryOrder
 
-    """Filtering options for GithubRepositories returned from the connection."""
+    """
+    Filtering options for GithubRepositories returned from the connection.
+    """
     where: GithubRepositoryWhereInput
   ): GithubRepositoryConnection!
   labels(
-    """Returns the elements in the list that come after the specified cursor."""
+    """
+    Returns the elements in the list that come after the specified cursor.
+    """
     after: Cursor
 
-    """Returns the first _n_ elements from the list."""
+    """
+    Returns the first _n_ elements from the list.
+    """
     first: Int
 
-    """Returns the elements in the list that come before the specified cursor."""
+    """
+    Returns the elements in the list that come before the specified cursor.
+    """
     before: Cursor
 
-    """Returns the last _n_ elements from the list."""
+    """
+    Returns the last _n_ elements from the list.
+    """
     last: Int
 
-    """Filtering options for Labels returned from the connection."""
+    """
+    Filtering options for Labels returned from the connection.
+    """
     where: LabelWhereInput
   ): LabelConnection!
   posts(
-    """Returns the elements in the list that come after the specified cursor."""
+    """
+    Returns the elements in the list that come after the specified cursor.
+    """
     after: Cursor
 
-    """Returns the first _n_ elements from the list."""
+    """
+    Returns the first _n_ elements from the list.
+    """
     first: Int
 
-    """Returns the elements in the list that come before the specified cursor."""
+    """
+    Returns the elements in the list that come before the specified cursor.
+    """
     before: Cursor
 
-    """Returns the last _n_ elements from the list."""
+    """
+    Returns the last _n_ elements from the list.
+    """
     last: Int
 
-    """Ordering options for Posts returned from the connection."""
+    """
+    Ordering options for Posts returned from the connection.
+    """
     orderBy: PostOrder
 
-    """Filtering options for Posts returned from the connection."""
+    """
+    Filtering options for Posts returned from the connection.
+    """
     where: PostWhereInput
   ): PostConnection!
   users(
-    """Returns the elements in the list that come after the specified cursor."""
+    """
+    Returns the elements in the list that come after the specified cursor.
+    """
     after: Cursor
 
-    """Returns the first _n_ elements from the list."""
+    """
+    Returns the first _n_ elements from the list.
+    """
     first: Int
 
-    """Returns the elements in the list that come before the specified cursor."""
+    """
+    Returns the elements in the list that come before the specified cursor.
+    """
     before: Cursor
 
-    """Returns the last _n_ elements from the list."""
+    """
+    Returns the last _n_ elements from the list.
+    """
     last: Int
 
-    """Ordering options for Users returned from the connection."""
+    """
+    Ordering options for Users returned from the connection.
+    """
     orderBy: UserOrder
 
-    """Filtering options for Users returned from the connection."""
+    """
+    Filtering options for Users returned from the connection.
+    """
     where: UserWhereInput
   ): UserConnection!
 }
@@ -2171,49 +2582,83 @@ type User implements Node {
   location: String
   bio: String
   posts(
-    """Returns the elements in the list that come after the specified cursor."""
+    """
+    Returns the elements in the list that come after the specified cursor.
+    """
     after: Cursor
 
-    """Returns the first _n_ elements from the list."""
+    """
+    Returns the first _n_ elements from the list.
+    """
     first: Int
 
-    """Returns the elements in the list that come before the specified cursor."""
+    """
+    Returns the elements in the list that come before the specified cursor.
+    """
     before: Cursor
 
-    """Returns the last _n_ elements from the list."""
+    """
+    Returns the last _n_ elements from the list.
+    """
     last: Int
 
-    """Ordering options for Posts returned from the connection."""
+    """
+    Ordering options for Posts returned from the connection.
+    """
     orderBy: PostOrder
 
-    """Filtering options for Posts returned from the connection."""
+    """
+    Filtering options for Posts returned from the connection.
+    """
     where: PostWhereInput
   ): PostConnection!
 }
-"""A connection to a list of items."""
+"""
+A connection to a list of items.
+"""
 type UserConnection {
-  """A list of edges."""
+  """
+  A list of edges.
+  """
   edges: [UserEdge]
-  """Information to aid in pagination."""
+  """
+  Information to aid in pagination.
+  """
   pageInfo: PageInfo!
-  """Identifies the total count of items in the connection."""
+  """
+  Identifies the total count of items in the connection.
+  """
   totalCount: Int!
 }
-"""An edge in a connection."""
+"""
+An edge in a connection.
+"""
 type UserEdge {
-  """The item at the end of the edge."""
+  """
+  The item at the end of the edge.
+  """
   node: User
-  """A cursor for use in pagination."""
+  """
+  A cursor for use in pagination.
+  """
   cursor: Cursor!
 }
-"""Ordering options for User connections"""
+"""
+Ordering options for User connections
+"""
 input UserOrder {
-  """The ordering direction."""
+  """
+  The ordering direction.
+  """
   direction: OrderDirection! = ASC
-  """The field by which to order Users."""
+  """
+  The field by which to order Users.
+  """
   field: UserOrderField!
 }
-"""Properties by which User connections can be ordered."""
+"""
+Properties by which User connections can be ordered.
+"""
 enum UserOrderField {
   LOGIN
   NAME
@@ -2227,7 +2672,9 @@ input UserWhereInput {
   not: UserWhereInput
   and: [UserWhereInput!]
   or: [UserWhereInput!]
-  """id field predicates"""
+  """
+  id field predicates
+  """
   id: ID
   idNEQ: ID
   idIn: [ID!]
@@ -2236,7 +2683,9 @@ input UserWhereInput {
   idGTE: ID
   idLT: ID
   idLTE: ID
-  """create_time field predicates"""
+  """
+  create_time field predicates
+  """
   createTime: Time
   createTimeNEQ: Time
   createTimeIn: [Time!]
@@ -2245,7 +2694,9 @@ input UserWhereInput {
   createTimeGTE: Time
   createTimeLT: Time
   createTimeLTE: Time
-  """update_time field predicates"""
+  """
+  update_time field predicates
+  """
   updateTime: Time
   updateTimeNEQ: Time
   updateTimeIn: [Time!]
@@ -2254,7 +2705,9 @@ input UserWhereInput {
   updateTimeGTE: Time
   updateTimeLT: Time
   updateTimeLTE: Time
-  """user_id field predicates"""
+  """
+  user_id field predicates
+  """
   userID: Int
   userIDNEQ: Int
   userIDIn: [Int!]
@@ -2263,7 +2716,9 @@ input UserWhereInput {
   userIDGTE: Int
   userIDLT: Int
   userIDLTE: Int
-  """login field predicates"""
+  """
+  login field predicates
+  """
   login: String
   loginNEQ: String
   loginIn: [String!]
@@ -2277,7 +2732,9 @@ input UserWhereInput {
   loginHasSuffix: String
   loginEqualFold: String
   loginContainsFold: String
-  """name field predicates"""
+  """
+  name field predicates
+  """
   name: String
   nameNEQ: String
   nameIn: [String!]
@@ -2293,7 +2750,9 @@ input UserWhereInput {
   nameNotNil: Boolean
   nameEqualFold: String
   nameContainsFold: String
-  """avatar_url field predicates"""
+  """
+  avatar_url field predicates
+  """
   avatarURL: String
   avatarURLNEQ: String
   avatarURLIn: [String!]
@@ -2309,7 +2768,9 @@ input UserWhereInput {
   avatarURLNotNil: Boolean
   avatarURLEqualFold: String
   avatarURLContainsFold: String
-  """html_url field predicates"""
+  """
+  html_url field predicates
+  """
   htmlURL: String
   htmlURLNEQ: String
   htmlURLIn: [String!]
@@ -2325,7 +2786,9 @@ input UserWhereInput {
   htmlURLNotNil: Boolean
   htmlURLEqualFold: String
   htmlURLContainsFold: String
-  """email field predicates"""
+  """
+  email field predicates
+  """
   email: String
   emailNEQ: String
   emailIn: [String!]
@@ -2341,7 +2804,9 @@ input UserWhereInput {
   emailNotNil: Boolean
   emailEqualFold: String
   emailContainsFold: String
-  """location field predicates"""
+  """
+  location field predicates
+  """
   location: String
   locationNEQ: String
   locationIn: [String!]
@@ -2357,7 +2822,9 @@ input UserWhereInput {
   locationNotNil: Boolean
   locationEqualFold: String
   locationContainsFold: String
-  """bio field predicates"""
+  """
+  bio field predicates
+  """
   bio: String
   bioNEQ: String
   bioIn: [String!]
@@ -2373,9 +2840,21 @@ input UserWhereInput {
   bioNotNil: Boolean
   bioEqualFold: String
   bioContainsFold: String
-  """posts edge predicates"""
+  """
+  posts edge predicates
+  """
   hasPosts: Boolean
   hasPostsWith: [PostWhereInput!]
+}
+
+type Mutation {
+  ping: String
+}
+`, BuiltIn: false},
+	{Name: "../schema/label.graphqls", Input: `extend type Mutation {
+  createLabel(input: CreateLabelInput!): Label!
+  updateLabel(id: ID!, input: UpdateLabelInput!): Label!
+  deleteLabel(id: ID!): ID!
 }
 `, BuiltIn: false},
 	{Name: "../schema/schema.graphqls", Input: `scalar Time
@@ -2523,6 +3002,60 @@ func (ec *executionContext) field_Label_posts_args(ctx context.Context, rawArgs 
 		}
 	}
 	args["where"] = arg5
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_createLabel_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 ent.CreateLabelInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNCreateLabelInput2aiisxᚗcomᚋsrcᚋentᚐCreateLabelInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteLabel_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateLabel_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	var arg1 ent.UpdateLabelInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg1, err = ec.unmarshalNUpdateLabelInput2aiisxᚗcomᚋsrcᚋentᚐUpdateLabelInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg1
 	return args, nil
 }
 
@@ -5994,6 +6527,138 @@ func (ec *executionContext) fieldContext_Label_id(ctx context.Context, field gra
 	return fc, nil
 }
 
+func (ec *executionContext) _Label_createTime(ctx context.Context, field graphql.CollectedField, obj *ent.Label) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Label_createTime(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Label().CreateTime(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*time.Time)
+	fc.Result = res
+	return ec.marshalNTime2ᚖtimeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Label_createTime(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Label",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Label_updateTime(ctx context.Context, field graphql.CollectedField, obj *ent.Label) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Label_updateTime(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Label().UpdateTime(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*time.Time)
+	fc.Result = res
+	return ec.marshalNTime2ᚖtimeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Label_updateTime(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Label",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Label_name(ctx context.Context, field graphql.CollectedField, obj *ent.Label) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Label_name(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Label().Name(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Label_name(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Label",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Label_posts(ctx context.Context, field graphql.CollectedField, obj *ent.Label) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Label_posts(ctx, field)
 	if err != nil {
@@ -6240,6 +6905,12 @@ func (ec *executionContext) fieldContext_LabelEdge_node(ctx context.Context, fie
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_Label_id(ctx, field)
+			case "createTime":
+				return ec.fieldContext_Label_createTime(ctx, field)
+			case "updateTime":
+				return ec.fieldContext_Label_updateTime(ctx, field)
+			case "name":
+				return ec.fieldContext_Label_name(ctx, field)
 			case "posts":
 				return ec.fieldContext_Label_posts(ctx, field)
 			}
@@ -6509,6 +7180,236 @@ func (ec *executionContext) fieldContext_Link_url(ctx context.Context, field gra
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
 		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_ping(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_ping(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().Ping(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_ping(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_createLabel(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_createLabel(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().CreateLabel(rctx, fc.Args["input"].(ent.CreateLabelInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*ent.Label)
+	fc.Result = res
+	return ec.marshalNLabel2ᚖaiisxᚗcomᚋsrcᚋentᚐLabel(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_createLabel(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Label_id(ctx, field)
+			case "createTime":
+				return ec.fieldContext_Label_createTime(ctx, field)
+			case "updateTime":
+				return ec.fieldContext_Label_updateTime(ctx, field)
+			case "name":
+				return ec.fieldContext_Label_name(ctx, field)
+			case "posts":
+				return ec.fieldContext_Label_posts(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Label", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createLabel_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateLabel(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_updateLabel(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UpdateLabel(rctx, fc.Args["id"].(string), fc.Args["input"].(ent.UpdateLabelInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*ent.Label)
+	fc.Result = res
+	return ec.marshalNLabel2ᚖaiisxᚗcomᚋsrcᚋentᚐLabel(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateLabel(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Label_id(ctx, field)
+			case "createTime":
+				return ec.fieldContext_Label_createTime(ctx, field)
+			case "updateTime":
+				return ec.fieldContext_Label_updateTime(ctx, field)
+			case "name":
+				return ec.fieldContext_Label_name(ctx, field)
+			case "posts":
+				return ec.fieldContext_Label_posts(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Label", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateLabel_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_deleteLabel(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_deleteLabel(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeleteLabel(rctx, fc.Args["id"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_deleteLabel(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_deleteLabel_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
 	}
 	return fc, nil
 }
@@ -11374,19 +12275,63 @@ func (ec *executionContext) unmarshalInputCreateLabelInput(ctx context.Context, 
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"postIDs"}
+	fieldsInOrder := [...]string{"createTime", "updateTime", "name", "postIDs", "githubRepositoryIDs"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
 			continue
 		}
 		switch k {
+		case "createTime":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("createTime"))
+			data, err := ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			if err = ec.resolvers.CreateLabelInput().CreateTime(ctx, &it, data); err != nil {
+				return it, err
+			}
+		case "updateTime":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("updateTime"))
+			data, err := ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			if err = ec.resolvers.CreateLabelInput().UpdateTime(ctx, &it, data); err != nil {
+				return it, err
+			}
+		case "name":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			if err = ec.resolvers.CreateLabelInput().Name(ctx, &it, data); err != nil {
+				return it, err
+			}
 		case "postIDs":
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("postIDs"))
 			it.PostIDs, err = ec.unmarshalOID2ᚕintᚄ(ctx, v)
 			if err != nil {
+				return it, err
+			}
+		case "githubRepositoryIDs":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("githubRepositoryIDs"))
+			data, err := ec.unmarshalOID2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			if err = ec.resolvers.CreateLabelInput().GithubRepositoryIDs(ctx, &it, data); err != nil {
 				return it, err
 			}
 		}
@@ -13374,6 +14319,38 @@ func (ec *executionContext) unmarshalInputGithubRepositoryWhereInput(ctx context
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("updatedAtNotNil"))
 			it.UpdatedAtNotNil, err = ec.unmarshalOBoolean2bool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputLabelOrder(ctx context.Context, obj interface{}) (ent.LabelOrder, error) {
+	var it ent.LabelOrder
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	if _, present := asMap["direction"]; !present {
+		asMap["direction"] = "ASC"
+	}
+
+	fieldsInOrder := [...]string{"direction"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "direction":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("direction"))
+			it.Direction, err = ec.unmarshalNOrderDirection2aiisxᚗcomᚋsrcᚋentᚐOrderDirection(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -16472,6 +17449,66 @@ func (ec *executionContext) _Label(ctx context.Context, sel ast.SelectionSet, ob
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
+		case "createTime":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Label_createTime(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
+		case "updateTime":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Label_updateTime(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
+		case "name":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Label_name(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
 		case "posts":
 			field := field
 
@@ -16636,6 +17673,69 @@ func (ec *executionContext) _Link(ctx context.Context, sel ast.SelectionSet, obj
 		case "url":
 
 			out.Values[i] = ec._Link_url(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var mutationImplementors = []string{"Mutation"}
+
+func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, mutationImplementors)
+	ctx = graphql.WithFieldContext(ctx, &graphql.FieldContext{
+		Object: "Mutation",
+	})
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		innerCtx := graphql.WithRootFieldContext(ctx, &graphql.RootFieldContext{
+			Object: field.Name,
+			Field:  field,
+		})
+
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Mutation")
+		case "ping":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_ping(ctx, field)
+			})
+
+		case "createLabel":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createLabel(ctx, field)
+			})
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "updateLabel":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateLabel(ctx, field)
+			})
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "deleteLabel":
+
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_deleteLabel(ctx, field)
+			})
 
 			if out.Values[i] == graphql.Null {
 				invalids++
@@ -17819,6 +18919,11 @@ func (ec *executionContext) marshalNCodingStats2ᚖaiisxᚗcomᚋsrcᚋmodelsᚐ
 	return ec._CodingStats(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNCreateLabelInput2aiisxᚗcomᚋsrcᚋentᚐCreateLabelInput(ctx context.Context, v interface{}) (ent.CreateLabelInput, error) {
+	res, err := ec.unmarshalInputCreateLabelInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNCursor2aiisxᚗcomᚋsrcᚋentᚐCursor(ctx context.Context, v interface{}) (ent.Cursor, error) {
 	var res ent.Cursor
 	err := res.UnmarshalGQL(v)
@@ -18036,6 +19141,20 @@ func (ec *executionContext) marshalNInt2ᚖint64(ctx context.Context, sel ast.Se
 	return res
 }
 
+func (ec *executionContext) marshalNLabel2aiisxᚗcomᚋsrcᚋentᚐLabel(ctx context.Context, sel ast.SelectionSet, v ent.Label) graphql.Marshaler {
+	return ec._Label(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNLabel2ᚖaiisxᚗcomᚋsrcᚋentᚐLabel(ctx context.Context, sel ast.SelectionSet, v *ent.Label) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Label(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNLabelConnection2aiisxᚗcomᚋsrcᚋentᚐLabelConnection(ctx context.Context, sel ast.SelectionSet, v ent.LabelConnection) graphql.Marshaler {
 	return ec._LabelConnection(ctx, sel, &v)
 }
@@ -18226,6 +19345,32 @@ func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel as
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNTime2ᚖtimeᚐTime(ctx context.Context, v interface{}) (*time.Time, error) {
+	res, err := graphql.UnmarshalTime(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNTime2ᚖtimeᚐTime(ctx context.Context, sel ast.SelectionSet, v *time.Time) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	res := graphql.MarshalTime(*v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNUpdateLabelInput2aiisxᚗcomᚋsrcᚋentᚐUpdateLabelInput(ctx context.Context, v interface{}) (ent.UpdateLabelInput, error) {
+	res, err := ec.unmarshalInputUpdateLabelInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalNUser2ᚖaiisxᚗcomᚋsrcᚋentᚐUser(ctx context.Context, sel ast.SelectionSet, v *ent.User) graphql.Marshaler {
@@ -18798,6 +19943,44 @@ func (ec *executionContext) marshalOID2ᚕintᚄ(ctx context.Context, sel ast.Se
 	ret := make(graphql.Array, len(v))
 	for i := range v {
 		ret[i] = ec.marshalNID2int(ctx, sel, v[i])
+	}
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) unmarshalOID2ᚕstringᚄ(ctx context.Context, v interface{}) ([]string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []interface{}
+	if v != nil {
+		vSlice = graphql.CoerceList(v)
+	}
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNID2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOID2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNID2string(ctx, sel, v[i])
 	}
 
 	for _, e := range ret {

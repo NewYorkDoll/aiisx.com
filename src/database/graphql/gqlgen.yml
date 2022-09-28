@@ -46,6 +46,9 @@ resolver:
 autobind:
   - aiisx.com/src/models
   - aiisx.com/src/ent
+  - aiisx.com/src/ent/user
+  - aiisx.com/src/ent/post
+  - aiisx.com/src/ent/label
 
 # This section declares type mapping between the GraphQL and go type systems
 #

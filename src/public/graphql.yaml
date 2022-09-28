@@ -1,0 +1,16 @@
+schema: ../database/graphql/graph/schema/*.graphqls
+documents: ./lib/api/*.gql
+overwrite: true
+generates:
+  ./lib/api/index.ts:
+    plugins:
+      - typescript
+      - typescript-operations
+    config:
+      inputMaybeValue: T | Ref<T> | ComputedRef<T>
+      preResolveTypes: true
+      nonOptionalTypename: true
+      skipTypeNameForRoot: true
+      useTypeImports: true
+      # exportFragmentSpreadSubTypes: true
+      # mergeFragmentTypes: true

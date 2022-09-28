@@ -76,6 +76,7 @@ func main() {
 		),
 	)
 	r.GET("/-/auth/providers/github/callback", func(ctx *gin.Context) {
+		ctx.Header("Cache-Control", "no-store")
 		provider := "github"
 		ctx.Request = contextWithProviderName(ctx, provider)
 		if gothUser, err := gothic.CompleteUserAuth(ctx.Writer, ctx.Request); err == nil {
@@ -91,12 +92,9 @@ func main() {
 	gh.NewChient(ctx, config.GITHUB_ACCESS_TOKEN)
 	// graphql服务
 	srv := graphql.New(db)
-	r.GET("/-/", func(ctx *gin.Context) {
-		ctx.JSON(http.StatusOK, gin.H{
-			"message": "hello /-/",
-		})
-	})
+
 	r.GET("/-/auth", func(ctx *gin.Context) {
+		ctx.Header("Cache-Control", "no-store")
 		gothic.BeginAuthHandler(ctx.Writer, gothic.GetContextWithProvider(ctx.Request, "github"))
 	})
 	r.GET("/-/auth/logout", func(ctx *gin.Context) {

@@ -11,7 +11,6 @@ const router = useRouter();
 if (!state.base || !state.base.self) {
   router.replace("/404");
 }
-console.log(state.base?.self);
 </script>
 
 <template>
@@ -56,7 +55,9 @@ console.log(state.base?.self);
           </n-spin>
         </template>
         <template v-else>
-          <slot></slot>
+          <n-message-provider>
+            <slot></slot>
+          </n-message-provider>
         </template>
       </n-layout>
     </n-layout>

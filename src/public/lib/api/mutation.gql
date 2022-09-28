@@ -1,0 +1,6 @@
+mutation createLabel($input: CreateLabelInput!) {
+  createLabel(input: $input) {
+    id
+    name
+  }
+}

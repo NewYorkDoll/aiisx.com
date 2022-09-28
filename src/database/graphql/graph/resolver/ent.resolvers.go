@@ -6,6 +6,7 @@ package resolver
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"aiisx.com/src/database/graphql/graph/generated"
 	"aiisx.com/src/database/graphql/graph/model"
@@ -15,6 +16,26 @@ import (
 // License is the resolver for the license field.
 func (r *githubRepositoryResolver) License(ctx context.Context, obj *ent.GithubRepository) (*model.GithubLicense, error) {
 	panic(fmt.Errorf("not implemented: License - license"))
+}
+
+// CreateTime is the resolver for the createTime field.
+func (r *labelResolver) CreateTime(ctx context.Context, obj *ent.Label) (*time.Time, error) {
+	panic(fmt.Errorf("not implemented: CreateTime - createTime"))
+}
+
+// UpdateTime is the resolver for the updateTime field.
+func (r *labelResolver) UpdateTime(ctx context.Context, obj *ent.Label) (*time.Time, error) {
+	panic(fmt.Errorf("not implemented: UpdateTime - updateTime"))
+}
+
+// Name is the resolver for the name field.
+func (r *labelResolver) Name(ctx context.Context, obj *ent.Label) (string, error) {
+	panic(fmt.Errorf("not implemented: Name - name"))
+}
+
+// Ping is the resolver for the ping field.
+func (r *mutationResolver) Ping(ctx context.Context) (*string, error) {
+	panic(fmt.Errorf("not implemented: Ping - ping"))
 }
 
 // Node is the resolver for the node field.
@@ -60,16 +81,50 @@ func (r *queryResolver) Users(ctx context.Context, after *ent.Cursor, first *int
 	panic(fmt.Errorf("not implemented: Users - users"))
 }
 
+// CreateTime is the resolver for the createTime field.
+func (r *createLabelInputResolver) CreateTime(ctx context.Context, obj *ent.CreateLabelInput, data *time.Time) error {
+	panic(fmt.Errorf("not implemented: CreateTime - createTime"))
+}
+
+// UpdateTime is the resolver for the updateTime field.
+func (r *createLabelInputResolver) UpdateTime(ctx context.Context, obj *ent.CreateLabelInput, data *time.Time) error {
+	panic(fmt.Errorf("not implemented: UpdateTime - updateTime"))
+}
+
+// Name is the resolver for the name field.
+func (r *createLabelInputResolver) Name(ctx context.Context, obj *ent.CreateLabelInput, data string) error {
+	panic(fmt.Errorf("not implemented: Name - name"))
+}
+
+// GithubRepositoryIDs is the resolver for the githubRepositoryIDs field.
+func (r *createLabelInputResolver) GithubRepositoryIDs(ctx context.Context, obj *ent.CreateLabelInput, data []string) error {
+	panic(fmt.Errorf("not implemented: GithubRepositoryIDs - githubRepositoryIDs"))
+}
+
 // GithubRepository returns generated.GithubRepositoryResolver implementation.
 func (r *Resolver) GithubRepository() generated.GithubRepositoryResolver {
 	return &githubRepositoryResolver{r}
 }
 
+// Label returns generated.LabelResolver implementation.
+func (r *Resolver) Label() generated.LabelResolver { return &labelResolver{r} }
+
+// Mutation returns generated.MutationResolver implementation.
+func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
+
 // Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
+// CreateLabelInput returns generated.CreateLabelInputResolver implementation.
+func (r *Resolver) CreateLabelInput() generated.CreateLabelInputResolver {
+	return &createLabelInputResolver{r}
+}
+
 type githubRepositoryResolver struct{ *Resolver }
+type labelResolver struct{ *Resolver }
+type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+type createLabelInputResolver struct{ *Resolver }
 
 // !!! WARNING !!!
 // The code below was going to be deleted when updating resolvers. It has been copied here so you have

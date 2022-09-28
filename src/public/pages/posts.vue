@@ -3,7 +3,6 @@ definePageMeta({
   layout: false,
 });
 const { data } = await useAsyncGql("base");
-console.log(data);
 </script>
 <template>
   <NuxtLayout name="posts">

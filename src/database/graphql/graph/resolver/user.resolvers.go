@@ -5,7 +5,6 @@ package resolver
 
 import (
 	"context"
-	"fmt"
 
 	"aiisx.com/src/auth"
 	"aiisx.com/src/ent"
@@ -16,7 +15,7 @@ func (r *queryResolver) Self(ctx context.Context) (*ent.User, error) {
 	// user := auth.IdentFromContext[ent.User](ctx)
 	user := auth.User.Load()
 	if user == nil {
-		return nil, fmt.Errorf("not authenticated")
+		return nil, nil
 	}
 
 	return user, nil
