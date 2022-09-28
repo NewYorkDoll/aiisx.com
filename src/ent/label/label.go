@@ -2,13 +2,27 @@
 
 package label
 
+import (
+	"time"
+
+	"entgo.io/ent"
+)
+
 const (
 	// Label holds the string label denoting the label type in the database.
 	Label = "label"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
+	// FieldCreateTime holds the string denoting the create_time field in the database.
+	FieldCreateTime = "create_time"
+	// FieldUpdateTime holds the string denoting the update_time field in the database.
+	FieldUpdateTime = "update_time"
+	// FieldName holds the string denoting the name field in the database.
+	FieldName = "name"
 	// EdgePosts holds the string denoting the posts edge name in mutations.
 	EdgePosts = "posts"
+	// EdgeGithubRepositories holds the string denoting the github_repositories edge name in mutations.
+	EdgeGithubRepositories = "github_repositories"
 	// Table holds the table name of the label in the database.
 	Table = "labels"
 	// PostsTable is the table that holds the posts relation/edge. The primary key declared below.
@@ -16,11 +30,21 @@ const (
 	// PostsInverseTable is the table name for the Post entity.
 	// It exists in this package in order to avoid circular dependency with the "post" package.
 	PostsInverseTable = "posts"
+	// GithubRepositoriesTable is the table that holds the github_repositories relation/edge.
+	GithubRepositoriesTable = "github_repositories"
+	// GithubRepositoriesInverseTable is the table name for the GithubRepository entity.
+	// It exists in this package in order to avoid circular dependency with the "githubrepository" package.
+	GithubRepositoriesInverseTable = "github_repositories"
+	// GithubRepositoriesColumn is the table column denoting the github_repositories relation/edge.
+	GithubRepositoriesColumn = "label_github_repositories"
 )
 
 // Columns holds all SQL columns for label fields.
 var Columns = []string{
 	FieldID,
+	FieldCreateTime,
+	FieldUpdateTime,
+	FieldName,
 }
 
 var (
@@ -38,3 +62,21 @@ func ValidColumn(column string) bool {
 	}
 	return false
 }
+
+// Note that the variables below are initialized by the runtime
+// package on the initialization of the application. Therefore,
+// it should be imported in the main as follows:
+//
+//	import _ "aiisx.com/src/ent/runtime"
+var (
+	Hooks  [1]ent.Hook
+	Policy ent.Policy
+	// DefaultCreateTime holds the default value on creation for the "create_time" field.
+	DefaultCreateTime func() time.Time
+	// DefaultUpdateTime holds the default value on creation for the "update_time" field.
+	DefaultUpdateTime func() time.Time
+	// UpdateDefaultUpdateTime holds the default value on update for the "update_time" field.
+	UpdateDefaultUpdateTime func() time.Time
+	// NameValidator is a validator for the "name" field. It is called by the builders before save.
+	NameValidator func(string) error
+)

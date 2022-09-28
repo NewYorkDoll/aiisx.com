@@ -29,6 +29,27 @@ func (l *Label) Posts(
 	return l.QueryPosts().Paginate(ctx, after, first, before, last, opts...)
 }
 
+func (l *Label) GithubRepositories(
+	ctx context.Context, after *Cursor, first *int, before *Cursor, last *int, orderBy *GithubRepositoryOrder, where *GithubRepositoryWhereInput,
+) (*GithubRepositoryConnection, error) {
+	opts := []GithubRepositoryPaginateOption{
+		WithGithubRepositoryOrder(orderBy),
+		WithGithubRepositoryFilter(where.Filter),
+	}
+	alias := graphql.GetFieldContext(ctx).Field.Alias
+	totalCount, hasTotalCount := l.Edges.totalCount[1][alias]
+	if nodes, err := l.NamedGithubRepositories(alias); err == nil || hasTotalCount {
+		pager, err := newGithubRepositoryPager(opts)
+		if err != nil {
+			return nil, err
+		}
+		conn := &GithubRepositoryConnection{Edges: []*GithubRepositoryEdge{}, TotalCount: totalCount}
+		conn.build(nodes, pager, after, first, before, last)
+		return conn, nil
+	}
+	return l.QueryGithubRepositories().Paginate(ctx, after, first, before, last, opts...)
+}
+
 func (po *Post) Author(ctx context.Context) (*User, error) {
 	result, err := po.Edges.AuthorOrErr()
 	if IsNotLoaded(err) {
@@ -38,9 +59,10 @@ func (po *Post) Author(ctx context.Context) (*User, error) {
 }
 
 func (po *Post) Labels(
-	ctx context.Context, after *Cursor, first *int, before *Cursor, last *int, where *LabelWhereInput,
+	ctx context.Context, after *Cursor, first *int, before *Cursor, last *int, orderBy *LabelOrder, where *LabelWhereInput,
 ) (*LabelConnection, error) {
 	opts := []LabelPaginateOption{
+		WithLabelOrder(orderBy),
 		WithLabelFilter(where.Filter),
 	}
 	alias := graphql.GetFieldContext(ctx).Field.Alias

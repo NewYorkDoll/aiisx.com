@@ -1130,6 +1130,49 @@ func (l *LabelQuery) Paginate(
 	return conn, nil
 }
 
+var (
+	// LabelOrderFieldName orders Label by name.
+	LabelOrderFieldName = &LabelOrderField{
+		field: label.FieldName,
+		toCursor: func(l *Label) Cursor {
+			return Cursor{
+				ID:    l.ID,
+				Value: l.Name,
+			}
+		},
+	}
+)
+
+// String implement fmt.Stringer interface.
+func (f LabelOrderField) String() string {
+	var str string
+	switch f.field {
+	case label.FieldName:
+		str = "NAME"
+	}
+	return str
+}
+
+// MarshalGQL implements graphql.Marshaler interface.
+func (f LabelOrderField) MarshalGQL(w io.Writer) {
+	io.WriteString(w, strconv.Quote(f.String()))
+}
+
+// UnmarshalGQL implements graphql.Unmarshaler interface.
+func (f *LabelOrderField) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("LabelOrderField %T must be a string", v)
+	}
+	switch str {
+	case "NAME":
+		*f = *LabelOrderFieldName
+	default:
+		return fmt.Errorf("%s is not a valid LabelOrderField", str)
+	}
+	return nil
+}
+
 // LabelOrderField defines the ordering field of Label.
 type LabelOrderField struct {
 	field    string

@@ -4,3 +4,9 @@ mutation createLabel($input: CreateLabelInput!) {
     name
   }
 }
+
+mutation createPost($input: CreatePostInput!) {
+    createPost(input: $input) {
+        id
+    }
+}

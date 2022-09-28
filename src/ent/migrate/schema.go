@@ -49,16 +49,28 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime, Nullable: true},
 		{Name: "license", Type: field.TypeJSON, Nullable: true},
+		{Name: "label_github_repositories", Type: field.TypeInt, Nullable: true},
 	}
 	// GithubRepositoriesTable holds the schema information for the "github_repositories" table.
 	GithubRepositoriesTable = &schema.Table{
 		Name:       "github_repositories",
 		Columns:    GithubRepositoriesColumns,
 		PrimaryKey: []*schema.Column{GithubRepositoriesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "github_repositories_labels_github_repositories",
+				Columns:    []*schema.Column{GithubRepositoriesColumns[20]},
+				RefColumns: []*schema.Column{LabelsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
 	}
 	// LabelsColumns holds the columns for the "labels" table.
 	LabelsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "create_time", Type: field.TypeTime},
+		{Name: "update_time", Type: field.TypeTime},
+		{Name: "name", Type: field.TypeString, Unique: true},
 	}
 	// LabelsTable holds the schema information for the "labels" table.
 	LabelsTable = &schema.Table{
@@ -152,6 +164,7 @@ var (
 )
 
 func init() {
+	GithubRepositoriesTable.ForeignKeys[0].RefTable = LabelsTable
 	PostsTable.ForeignKeys[0].RefTable = UsersTable
 	LabelPostsTable.ForeignKeys[0].RefTable = LabelsTable
 	LabelPostsTable.ForeignKeys[1].RefTable = PostsTable

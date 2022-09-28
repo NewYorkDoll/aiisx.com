@@ -82,8 +82,12 @@ var schemaGraph = func() *sqlgraph.Schema {
 				Column: label.FieldID,
 			},
 		},
-		Type:   "Label",
-		Fields: map[string]*sqlgraph.FieldSpec{},
+		Type: "Label",
+		Fields: map[string]*sqlgraph.FieldSpec{
+			label.FieldCreateTime: {Type: field.TypeTime, Column: label.FieldCreateTime},
+			label.FieldUpdateTime: {Type: field.TypeTime, Column: label.FieldUpdateTime},
+			label.FieldName:       {Type: field.TypeString, Column: label.FieldName},
+		},
 	}
 	graph.Nodes[3] = &sqlgraph.Node{
 		NodeSpec: sqlgraph.NodeSpec{
@@ -142,6 +146,18 @@ var schemaGraph = func() *sqlgraph.Schema {
 		},
 		"Label",
 		"Post",
+	)
+	graph.MustAddE(
+		"github_repositories",
+		&sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   label.GithubRepositoriesTable,
+			Columns: []string{label.GithubRepositoriesColumn},
+			Bidi:    false,
+		},
+		"Label",
+		"GithubRepository",
 	)
 	graph.MustAddE(
 		"author",
@@ -448,6 +464,21 @@ func (f *LabelFilter) WhereID(p entql.IntP) {
 	f.Where(p.Field(label.FieldID))
 }
 
+// WhereCreateTime applies the entql time.Time predicate on the create_time field.
+func (f *LabelFilter) WhereCreateTime(p entql.TimeP) {
+	f.Where(p.Field(label.FieldCreateTime))
+}
+
+// WhereUpdateTime applies the entql time.Time predicate on the update_time field.
+func (f *LabelFilter) WhereUpdateTime(p entql.TimeP) {
+	f.Where(p.Field(label.FieldUpdateTime))
+}
+
+// WhereName applies the entql string predicate on the name field.
+func (f *LabelFilter) WhereName(p entql.StringP) {
+	f.Where(p.Field(label.FieldName))
+}
+
 // WhereHasPosts applies a predicate to check if query has an edge posts.
 func (f *LabelFilter) WhereHasPosts() {
 	f.Where(entql.HasEdge("posts"))
@@ -456,6 +487,20 @@ func (f *LabelFilter) WhereHasPosts() {
 // WhereHasPostsWith applies a predicate to check if query has an edge posts with a given conditions (other predicates).
 func (f *LabelFilter) WhereHasPostsWith(preds ...predicate.Post) {
 	f.Where(entql.HasEdgeWith("posts", sqlgraph.WrapFunc(func(s *sql.Selector) {
+		for _, p := range preds {
+			p(s)
+		}
+	})))
+}
+
+// WhereHasGithubRepositories applies a predicate to check if query has an edge github_repositories.
+func (f *LabelFilter) WhereHasGithubRepositories() {
+	f.Where(entql.HasEdge("github_repositories"))
+}
+
+// WhereHasGithubRepositoriesWith applies a predicate to check if query has an edge github_repositories with a given conditions (other predicates).
+func (f *LabelFilter) WhereHasGithubRepositoriesWith(preds ...predicate.GithubRepository) {
+	f.Where(entql.HasEdgeWith("github_repositories", sqlgraph.WrapFunc(func(s *sql.Selector) {
 		for _, p := range preds {
 			p(s)
 		}

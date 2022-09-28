@@ -8,13 +8,27 @@ import (
 
 // CreateLabelInput represents a mutation input for creating labels.
 type CreateLabelInput struct {
-	PostIDs []int
+	CreateTime          *time.Time
+	UpdateTime          *time.Time
+	Name                string
+	PostIDs             []int
+	GithubRepositoryIDs []int
 }
 
 // Mutate applies the CreateLabelInput on the LabelMutation builder.
 func (i *CreateLabelInput) Mutate(m *LabelMutation) {
+	if v := i.CreateTime; v != nil {
+		m.SetCreateTime(*v)
+	}
+	if v := i.UpdateTime; v != nil {
+		m.SetUpdateTime(*v)
+	}
+	m.SetName(i.Name)
 	if v := i.PostIDs; len(v) > 0 {
 		m.AddPostIDs(v...)
+	}
+	if v := i.GithubRepositoryIDs; len(v) > 0 {
+		m.AddGithubRepositoryIDs(v...)
 	}
 }
 
@@ -26,17 +40,33 @@ func (c *LabelCreate) SetInput(i CreateLabelInput) *LabelCreate {
 
 // UpdateLabelInput represents a mutation input for updating labels.
 type UpdateLabelInput struct {
-	AddPostIDs    []int
-	RemovePostIDs []int
+	UpdateTime                *time.Time
+	Name                      *string
+	AddPostIDs                []int
+	RemovePostIDs             []int
+	AddGithubRepositoryIDs    []int
+	RemoveGithubRepositoryIDs []int
 }
 
 // Mutate applies the UpdateLabelInput on the LabelMutation builder.
 func (i *UpdateLabelInput) Mutate(m *LabelMutation) {
+	if v := i.UpdateTime; v != nil {
+		m.SetUpdateTime(*v)
+	}
+	if v := i.Name; v != nil {
+		m.SetName(*v)
+	}
 	if v := i.AddPostIDs; len(v) > 0 {
 		m.AddPostIDs(v...)
 	}
 	if v := i.RemovePostIDs; len(v) > 0 {
 		m.RemovePostIDs(v...)
+	}
+	if v := i.AddGithubRepositoryIDs; len(v) > 0 {
+		m.AddGithubRepositoryIDs(v...)
+	}
+	if v := i.RemoveGithubRepositoryIDs; len(v) > 0 {
+		m.RemoveGithubRepositoryIDs(v...)
 	}
 }
 

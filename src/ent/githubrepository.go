@@ -55,7 +55,8 @@ type GithubRepository struct {
 	// UpdatedAt holds the value of the "updated_at" field.
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// License holds the value of the "license" field.
-	License *github.License `json:"license,omitempty"`
+	License                   *github.License `json:"license,omitempty"`
+	label_github_repositories *int
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -73,6 +74,8 @@ func (*GithubRepository) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullString)
 		case githubrepository.FieldPushedAt, githubrepository.FieldCreatedAt, githubrepository.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
+		case githubrepository.ForeignKeys[0]: // label_github_repositories
+			values[i] = new(sql.NullInt64)
 		default:
 			return nil, fmt.Errorf("unexpected column %q for type GithubRepository", columns[i])
 		}
@@ -211,6 +214,13 @@ func (gr *GithubRepository) assignValues(columns []string, values []any) error {
 				if err := json.Unmarshal(*value, &gr.License); err != nil {
 					return fmt.Errorf("unmarshal field license: %w", err)
 				}
+			}
+		case githubrepository.ForeignKeys[0]:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field label_github_repositories", value)
+			} else if value.Valid {
+				gr.label_github_repositories = new(int)
+				*gr.label_github_repositories = int(value.Int64)
 			}
 		}
 	}

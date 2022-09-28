@@ -24,6 +24,7 @@ type GithubRepositoryQuery struct {
 	order      []OrderFunc
 	fields     []string
 	predicates []predicate.GithubRepository
+	withFKs    bool
 	modifiers  []func(*sql.Selector)
 	loadTotal  []func(context.Context, []*GithubRepository) error
 	// intermediate query (i.e. traversal path).
@@ -322,9 +323,13 @@ func (grq *GithubRepositoryQuery) prepareQuery(ctx context.Context) error {
 
 func (grq *GithubRepositoryQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*GithubRepository, error) {
 	var (
-		nodes = []*GithubRepository{}
-		_spec = grq.querySpec()
+		nodes   = []*GithubRepository{}
+		withFKs = grq.withFKs
+		_spec   = grq.querySpec()
 	)
+	if withFKs {
+		_spec.Node.Columns = append(_spec.Node.Columns, githubrepository.ForeignKeys...)
+	}
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*GithubRepository).scanValues(nil, columns)
 	}

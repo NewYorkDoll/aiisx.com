@@ -6,7 +6,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
+	"aiisx.com/src/ent/githubrepository"
 	"aiisx.com/src/ent/label"
 	"aiisx.com/src/ent/post"
 	"aiisx.com/src/ent/predicate"
@@ -28,6 +30,18 @@ func (lu *LabelUpdate) Where(ps ...predicate.Label) *LabelUpdate {
 	return lu
 }
 
+// SetUpdateTime sets the "update_time" field.
+func (lu *LabelUpdate) SetUpdateTime(t time.Time) *LabelUpdate {
+	lu.mutation.SetUpdateTime(t)
+	return lu
+}
+
+// SetName sets the "name" field.
+func (lu *LabelUpdate) SetName(s string) *LabelUpdate {
+	lu.mutation.SetName(s)
+	return lu
+}
+
 // AddPostIDs adds the "posts" edge to the Post entity by IDs.
 func (lu *LabelUpdate) AddPostIDs(ids ...int) *LabelUpdate {
 	lu.mutation.AddPostIDs(ids...)
@@ -41,6 +55,21 @@ func (lu *LabelUpdate) AddPosts(p ...*Post) *LabelUpdate {
 		ids[i] = p[i].ID
 	}
 	return lu.AddPostIDs(ids...)
+}
+
+// AddGithubRepositoryIDs adds the "github_repositories" edge to the GithubRepository entity by IDs.
+func (lu *LabelUpdate) AddGithubRepositoryIDs(ids ...int) *LabelUpdate {
+	lu.mutation.AddGithubRepositoryIDs(ids...)
+	return lu
+}
+
+// AddGithubRepositories adds the "github_repositories" edges to the GithubRepository entity.
+func (lu *LabelUpdate) AddGithubRepositories(g ...*GithubRepository) *LabelUpdate {
+	ids := make([]int, len(g))
+	for i := range g {
+		ids[i] = g[i].ID
+	}
+	return lu.AddGithubRepositoryIDs(ids...)
 }
 
 // Mutation returns the LabelMutation object of the builder.
@@ -69,19 +98,49 @@ func (lu *LabelUpdate) RemovePosts(p ...*Post) *LabelUpdate {
 	return lu.RemovePostIDs(ids...)
 }
 
+// ClearGithubRepositories clears all "github_repositories" edges to the GithubRepository entity.
+func (lu *LabelUpdate) ClearGithubRepositories() *LabelUpdate {
+	lu.mutation.ClearGithubRepositories()
+	return lu
+}
+
+// RemoveGithubRepositoryIDs removes the "github_repositories" edge to GithubRepository entities by IDs.
+func (lu *LabelUpdate) RemoveGithubRepositoryIDs(ids ...int) *LabelUpdate {
+	lu.mutation.RemoveGithubRepositoryIDs(ids...)
+	return lu
+}
+
+// RemoveGithubRepositories removes "github_repositories" edges to GithubRepository entities.
+func (lu *LabelUpdate) RemoveGithubRepositories(g ...*GithubRepository) *LabelUpdate {
+	ids := make([]int, len(g))
+	for i := range g {
+		ids[i] = g[i].ID
+	}
+	return lu.RemoveGithubRepositoryIDs(ids...)
+}
+
 // Save executes the query and returns the number of nodes affected by the update operation.
 func (lu *LabelUpdate) Save(ctx context.Context) (int, error) {
 	var (
 		err      error
 		affected int
 	)
+	if err := lu.defaults(); err != nil {
+		return 0, err
+	}
 	if len(lu.hooks) == 0 {
+		if err = lu.check(); err != nil {
+			return 0, err
+		}
 		affected, err = lu.sqlSave(ctx)
 	} else {
 		var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 			mutation, ok := m.(*LabelMutation)
 			if !ok {
 				return nil, fmt.Errorf("unexpected mutation type %T", m)
+			}
+			if err = lu.check(); err != nil {
+				return 0, err
 			}
 			lu.mutation = mutation
 			affected, err = lu.sqlSave(ctx)
@@ -123,6 +182,28 @@ func (lu *LabelUpdate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (lu *LabelUpdate) defaults() error {
+	if _, ok := lu.mutation.UpdateTime(); !ok {
+		if label.UpdateDefaultUpdateTime == nil {
+			return fmt.Errorf("ent: uninitialized label.UpdateDefaultUpdateTime (forgotten import ent/runtime?)")
+		}
+		v := label.UpdateDefaultUpdateTime()
+		lu.mutation.SetUpdateTime(v)
+	}
+	return nil
+}
+
+// check runs all checks and user-defined validators on the builder.
+func (lu *LabelUpdate) check() error {
+	if v, ok := lu.mutation.Name(); ok {
+		if err := label.NameValidator(v); err != nil {
+			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Label.name": %w`, err)}
+		}
+	}
+	return nil
+}
+
 func (lu *LabelUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	_spec := &sqlgraph.UpdateSpec{
 		Node: &sqlgraph.NodeSpec{
@@ -140,6 +221,20 @@ func (lu *LabelUpdate) sqlSave(ctx context.Context) (n int, err error) {
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := lu.mutation.UpdateTime(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: label.FieldUpdateTime,
+		})
+	}
+	if value, ok := lu.mutation.Name(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: label.FieldName,
+		})
 	}
 	if lu.mutation.PostsCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -195,6 +290,60 @@ func (lu *LabelUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if lu.mutation.GithubRepositoriesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   label.GithubRepositoriesTable,
+			Columns: []string{label.GithubRepositoriesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: githubrepository.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := lu.mutation.RemovedGithubRepositoriesIDs(); len(nodes) > 0 && !lu.mutation.GithubRepositoriesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   label.GithubRepositoriesTable,
+			Columns: []string{label.GithubRepositoriesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: githubrepository.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := lu.mutation.GithubRepositoriesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   label.GithubRepositoriesTable,
+			Columns: []string{label.GithubRepositoriesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: githubrepository.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, lu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{label.Label}
@@ -214,6 +363,18 @@ type LabelUpdateOne struct {
 	mutation *LabelMutation
 }
 
+// SetUpdateTime sets the "update_time" field.
+func (luo *LabelUpdateOne) SetUpdateTime(t time.Time) *LabelUpdateOne {
+	luo.mutation.SetUpdateTime(t)
+	return luo
+}
+
+// SetName sets the "name" field.
+func (luo *LabelUpdateOne) SetName(s string) *LabelUpdateOne {
+	luo.mutation.SetName(s)
+	return luo
+}
+
 // AddPostIDs adds the "posts" edge to the Post entity by IDs.
 func (luo *LabelUpdateOne) AddPostIDs(ids ...int) *LabelUpdateOne {
 	luo.mutation.AddPostIDs(ids...)
@@ -227,6 +388,21 @@ func (luo *LabelUpdateOne) AddPosts(p ...*Post) *LabelUpdateOne {
 		ids[i] = p[i].ID
 	}
 	return luo.AddPostIDs(ids...)
+}
+
+// AddGithubRepositoryIDs adds the "github_repositories" edge to the GithubRepository entity by IDs.
+func (luo *LabelUpdateOne) AddGithubRepositoryIDs(ids ...int) *LabelUpdateOne {
+	luo.mutation.AddGithubRepositoryIDs(ids...)
+	return luo
+}
+
+// AddGithubRepositories adds the "github_repositories" edges to the GithubRepository entity.
+func (luo *LabelUpdateOne) AddGithubRepositories(g ...*GithubRepository) *LabelUpdateOne {
+	ids := make([]int, len(g))
+	for i := range g {
+		ids[i] = g[i].ID
+	}
+	return luo.AddGithubRepositoryIDs(ids...)
 }
 
 // Mutation returns the LabelMutation object of the builder.
@@ -255,6 +431,27 @@ func (luo *LabelUpdateOne) RemovePosts(p ...*Post) *LabelUpdateOne {
 	return luo.RemovePostIDs(ids...)
 }
 
+// ClearGithubRepositories clears all "github_repositories" edges to the GithubRepository entity.
+func (luo *LabelUpdateOne) ClearGithubRepositories() *LabelUpdateOne {
+	luo.mutation.ClearGithubRepositories()
+	return luo
+}
+
+// RemoveGithubRepositoryIDs removes the "github_repositories" edge to GithubRepository entities by IDs.
+func (luo *LabelUpdateOne) RemoveGithubRepositoryIDs(ids ...int) *LabelUpdateOne {
+	luo.mutation.RemoveGithubRepositoryIDs(ids...)
+	return luo
+}
+
+// RemoveGithubRepositories removes "github_repositories" edges to GithubRepository entities.
+func (luo *LabelUpdateOne) RemoveGithubRepositories(g ...*GithubRepository) *LabelUpdateOne {
+	ids := make([]int, len(g))
+	for i := range g {
+		ids[i] = g[i].ID
+	}
+	return luo.RemoveGithubRepositoryIDs(ids...)
+}
+
 // Select allows selecting one or more fields (columns) of the returned entity.
 // The default is selecting all fields defined in the entity schema.
 func (luo *LabelUpdateOne) Select(field string, fields ...string) *LabelUpdateOne {
@@ -268,13 +465,22 @@ func (luo *LabelUpdateOne) Save(ctx context.Context) (*Label, error) {
 		err  error
 		node *Label
 	)
+	if err := luo.defaults(); err != nil {
+		return nil, err
+	}
 	if len(luo.hooks) == 0 {
+		if err = luo.check(); err != nil {
+			return nil, err
+		}
 		node, err = luo.sqlSave(ctx)
 	} else {
 		var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 			mutation, ok := m.(*LabelMutation)
 			if !ok {
 				return nil, fmt.Errorf("unexpected mutation type %T", m)
+			}
+			if err = luo.check(); err != nil {
+				return nil, err
 			}
 			luo.mutation = mutation
 			node, err = luo.sqlSave(ctx)
@@ -322,6 +528,28 @@ func (luo *LabelUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (luo *LabelUpdateOne) defaults() error {
+	if _, ok := luo.mutation.UpdateTime(); !ok {
+		if label.UpdateDefaultUpdateTime == nil {
+			return fmt.Errorf("ent: uninitialized label.UpdateDefaultUpdateTime (forgotten import ent/runtime?)")
+		}
+		v := label.UpdateDefaultUpdateTime()
+		luo.mutation.SetUpdateTime(v)
+	}
+	return nil
+}
+
+// check runs all checks and user-defined validators on the builder.
+func (luo *LabelUpdateOne) check() error {
+	if v, ok := luo.mutation.Name(); ok {
+		if err := label.NameValidator(v); err != nil {
+			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Label.name": %w`, err)}
+		}
+	}
+	return nil
+}
+
 func (luo *LabelUpdateOne) sqlSave(ctx context.Context) (_node *Label, err error) {
 	_spec := &sqlgraph.UpdateSpec{
 		Node: &sqlgraph.NodeSpec{
@@ -356,6 +584,20 @@ func (luo *LabelUpdateOne) sqlSave(ctx context.Context) (_node *Label, err error
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := luo.mutation.UpdateTime(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: label.FieldUpdateTime,
+		})
+	}
+	if value, ok := luo.mutation.Name(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: label.FieldName,
+		})
 	}
 	if luo.mutation.PostsCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -403,6 +645,60 @@ func (luo *LabelUpdateOne) sqlSave(ctx context.Context) (_node *Label, err error
 				IDSpec: &sqlgraph.FieldSpec{
 					Type:   field.TypeInt,
 					Column: post.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if luo.mutation.GithubRepositoriesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   label.GithubRepositoriesTable,
+			Columns: []string{label.GithubRepositoriesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: githubrepository.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := luo.mutation.RemovedGithubRepositoriesIDs(); len(nodes) > 0 && !luo.mutation.GithubRepositoriesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   label.GithubRepositoriesTable,
+			Columns: []string{label.GithubRepositoriesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: githubrepository.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := luo.mutation.GithubRepositoriesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   label.GithubRepositoriesTable,
+			Columns: []string{label.GithubRepositoriesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: githubrepository.FieldID,
 				},
 			},
 		}

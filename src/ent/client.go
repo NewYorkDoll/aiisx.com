@@ -436,9 +436,26 @@ func (c *LabelClient) QueryPosts(l *Label) *PostQuery {
 	return query
 }
 
+// QueryGithubRepositories queries the github_repositories edge of a Label.
+func (c *LabelClient) QueryGithubRepositories(l *Label) *GithubRepositoryQuery {
+	query := &GithubRepositoryQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := l.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(label.Table, label.FieldID, id),
+			sqlgraph.To(githubrepository.Table, githubrepository.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, label.GithubRepositoriesTable, label.GithubRepositoriesColumn),
+		)
+		fromV = sqlgraph.Neighbors(l.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *LabelClient) Hooks() []Hook {
-	return c.hooks.Label
+	hooks := c.hooks.Label
+	return append(hooks[:len(hooks):len(hooks)], label.Hooks[:]...)
 }
 
 // PostClient is a client for the Post schema.

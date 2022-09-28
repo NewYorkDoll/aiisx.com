@@ -7,7 +7,7 @@ const props = withDefaults(
   defineProps<{
     modelValue: string | string[] | number | number[];
     field: string;
-    where?: any;
+    where?: LabelWhereInput;
     suggest?: string;
   }>(),
   {

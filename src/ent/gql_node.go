@@ -300,8 +300,33 @@ func (l *Label) Node(ctx context.Context) (node *Node, err error) {
 	node = &Node{
 		ID:     l.ID,
 		Type:   "Label",
-		Fields: make([]*Field, 0),
-		Edges:  make([]*Edge, 1),
+		Fields: make([]*Field, 3),
+		Edges:  make([]*Edge, 2),
+	}
+	var buf []byte
+	if buf, err = json.Marshal(l.CreateTime); err != nil {
+		return nil, err
+	}
+	node.Fields[0] = &Field{
+		Type:  "time.Time",
+		Name:  "create_time",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(l.UpdateTime); err != nil {
+		return nil, err
+	}
+	node.Fields[1] = &Field{
+		Type:  "time.Time",
+		Name:  "update_time",
+		Value: string(buf),
+	}
+	if buf, err = json.Marshal(l.Name); err != nil {
+		return nil, err
+	}
+	node.Fields[2] = &Field{
+		Type:  "string",
+		Name:  "name",
+		Value: string(buf),
 	}
 	node.Edges[0] = &Edge{
 		Type: "Post",
@@ -310,6 +335,16 @@ func (l *Label) Node(ctx context.Context) (node *Node, err error) {
 	err = l.QueryPosts().
 		Select(post.FieldID).
 		Scan(ctx, &node.Edges[0].IDs)
+	if err != nil {
+		return nil, err
+	}
+	node.Edges[1] = &Edge{
+		Type: "GithubRepository",
+		Name: "github_repositories",
+	}
+	err = l.QueryGithubRepositories().
+		Select(githubrepository.FieldID).
+		Scan(ctx, &node.Edges[1].IDs)
 	if err != nil {
 		return nil, err
 	}

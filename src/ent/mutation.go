@@ -2301,16 +2301,22 @@ func (m *GithubRepositoryMutation) ResetEdge(name string) error {
 // LabelMutation represents an operation that mutates the Label nodes in the graph.
 type LabelMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *int
-	clearedFields map[string]struct{}
-	posts         map[int]struct{}
-	removedposts  map[int]struct{}
-	clearedposts  bool
-	done          bool
-	oldValue      func(context.Context) (*Label, error)
-	predicates    []predicate.Label
+	op                         Op
+	typ                        string
+	id                         *int
+	create_time                *time.Time
+	update_time                *time.Time
+	name                       *string
+	clearedFields              map[string]struct{}
+	posts                      map[int]struct{}
+	removedposts               map[int]struct{}
+	clearedposts               bool
+	github_repositories        map[int]struct{}
+	removedgithub_repositories map[int]struct{}
+	clearedgithub_repositories bool
+	done                       bool
+	oldValue                   func(context.Context) (*Label, error)
+	predicates                 []predicate.Label
 }
 
 var _ ent.Mutation = (*LabelMutation)(nil)
@@ -2411,6 +2417,114 @@ func (m *LabelMutation) IDs(ctx context.Context) ([]int, error) {
 	}
 }
 
+// SetCreateTime sets the "create_time" field.
+func (m *LabelMutation) SetCreateTime(t time.Time) {
+	m.create_time = &t
+}
+
+// CreateTime returns the value of the "create_time" field in the mutation.
+func (m *LabelMutation) CreateTime() (r time.Time, exists bool) {
+	v := m.create_time
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreateTime returns the old "create_time" field's value of the Label entity.
+// If the Label object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LabelMutation) OldCreateTime(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreateTime is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreateTime requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreateTime: %w", err)
+	}
+	return oldValue.CreateTime, nil
+}
+
+// ResetCreateTime resets all changes to the "create_time" field.
+func (m *LabelMutation) ResetCreateTime() {
+	m.create_time = nil
+}
+
+// SetUpdateTime sets the "update_time" field.
+func (m *LabelMutation) SetUpdateTime(t time.Time) {
+	m.update_time = &t
+}
+
+// UpdateTime returns the value of the "update_time" field in the mutation.
+func (m *LabelMutation) UpdateTime() (r time.Time, exists bool) {
+	v := m.update_time
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdateTime returns the old "update_time" field's value of the Label entity.
+// If the Label object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LabelMutation) OldUpdateTime(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdateTime is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdateTime requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdateTime: %w", err)
+	}
+	return oldValue.UpdateTime, nil
+}
+
+// ResetUpdateTime resets all changes to the "update_time" field.
+func (m *LabelMutation) ResetUpdateTime() {
+	m.update_time = nil
+}
+
+// SetName sets the "name" field.
+func (m *LabelMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *LabelMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the Label entity.
+// If the Label object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *LabelMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *LabelMutation) ResetName() {
+	m.name = nil
+}
+
 // AddPostIDs adds the "posts" edge to the Post entity by ids.
 func (m *LabelMutation) AddPostIDs(ids ...int) {
 	if m.posts == nil {
@@ -2465,6 +2579,60 @@ func (m *LabelMutation) ResetPosts() {
 	m.removedposts = nil
 }
 
+// AddGithubRepositoryIDs adds the "github_repositories" edge to the GithubRepository entity by ids.
+func (m *LabelMutation) AddGithubRepositoryIDs(ids ...int) {
+	if m.github_repositories == nil {
+		m.github_repositories = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.github_repositories[ids[i]] = struct{}{}
+	}
+}
+
+// ClearGithubRepositories clears the "github_repositories" edge to the GithubRepository entity.
+func (m *LabelMutation) ClearGithubRepositories() {
+	m.clearedgithub_repositories = true
+}
+
+// GithubRepositoriesCleared reports if the "github_repositories" edge to the GithubRepository entity was cleared.
+func (m *LabelMutation) GithubRepositoriesCleared() bool {
+	return m.clearedgithub_repositories
+}
+
+// RemoveGithubRepositoryIDs removes the "github_repositories" edge to the GithubRepository entity by IDs.
+func (m *LabelMutation) RemoveGithubRepositoryIDs(ids ...int) {
+	if m.removedgithub_repositories == nil {
+		m.removedgithub_repositories = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.github_repositories, ids[i])
+		m.removedgithub_repositories[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedGithubRepositories returns the removed IDs of the "github_repositories" edge to the GithubRepository entity.
+func (m *LabelMutation) RemovedGithubRepositoriesIDs() (ids []int) {
+	for id := range m.removedgithub_repositories {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// GithubRepositoriesIDs returns the "github_repositories" edge IDs in the mutation.
+func (m *LabelMutation) GithubRepositoriesIDs() (ids []int) {
+	for id := range m.github_repositories {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetGithubRepositories resets all changes to the "github_repositories" edge.
+func (m *LabelMutation) ResetGithubRepositories() {
+	m.github_repositories = nil
+	m.clearedgithub_repositories = false
+	m.removedgithub_repositories = nil
+}
+
 // Where appends a list predicates to the LabelMutation builder.
 func (m *LabelMutation) Where(ps ...predicate.Label) {
 	m.predicates = append(m.predicates, ps...)
@@ -2484,7 +2652,16 @@ func (m *LabelMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *LabelMutation) Fields() []string {
-	fields := make([]string, 0, 0)
+	fields := make([]string, 0, 3)
+	if m.create_time != nil {
+		fields = append(fields, label.FieldCreateTime)
+	}
+	if m.update_time != nil {
+		fields = append(fields, label.FieldUpdateTime)
+	}
+	if m.name != nil {
+		fields = append(fields, label.FieldName)
+	}
 	return fields
 }
 
@@ -2492,6 +2669,14 @@ func (m *LabelMutation) Fields() []string {
 // return value indicates that this field was not set, or was not defined in the
 // schema.
 func (m *LabelMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case label.FieldCreateTime:
+		return m.CreateTime()
+	case label.FieldUpdateTime:
+		return m.UpdateTime()
+	case label.FieldName:
+		return m.Name()
+	}
 	return nil, false
 }
 
@@ -2499,6 +2684,14 @@ func (m *LabelMutation) Field(name string) (ent.Value, bool) {
 // returned if the mutation operation is not UpdateOne, or the query to the
 // database failed.
 func (m *LabelMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case label.FieldCreateTime:
+		return m.OldCreateTime(ctx)
+	case label.FieldUpdateTime:
+		return m.OldUpdateTime(ctx)
+	case label.FieldName:
+		return m.OldName(ctx)
+	}
 	return nil, fmt.Errorf("unknown Label field %s", name)
 }
 
@@ -2507,6 +2700,27 @@ func (m *LabelMutation) OldField(ctx context.Context, name string) (ent.Value, e
 // type.
 func (m *LabelMutation) SetField(name string, value ent.Value) error {
 	switch name {
+	case label.FieldCreateTime:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreateTime(v)
+		return nil
+	case label.FieldUpdateTime:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdateTime(v)
+		return nil
+	case label.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Label field %s", name)
 }
@@ -2528,6 +2742,8 @@ func (m *LabelMutation) AddedField(name string) (ent.Value, bool) {
 // the field is not defined in the schema, or if the type mismatched the field
 // type.
 func (m *LabelMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
 	return fmt.Errorf("unknown Label numeric field %s", name)
 }
 
@@ -2553,14 +2769,28 @@ func (m *LabelMutation) ClearField(name string) error {
 // ResetField resets all changes in the mutation for the field with the given name.
 // It returns an error if the field is not defined in the schema.
 func (m *LabelMutation) ResetField(name string) error {
+	switch name {
+	case label.FieldCreateTime:
+		m.ResetCreateTime()
+		return nil
+	case label.FieldUpdateTime:
+		m.ResetUpdateTime()
+		return nil
+	case label.FieldName:
+		m.ResetName()
+		return nil
+	}
 	return fmt.Errorf("unknown Label field %s", name)
 }
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *LabelMutation) AddedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.posts != nil {
 		edges = append(edges, label.EdgePosts)
+	}
+	if m.github_repositories != nil {
+		edges = append(edges, label.EdgeGithubRepositories)
 	}
 	return edges
 }
@@ -2575,15 +2805,24 @@ func (m *LabelMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case label.EdgeGithubRepositories:
+		ids := make([]ent.Value, 0, len(m.github_repositories))
+		for id := range m.github_repositories {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *LabelMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.removedposts != nil {
 		edges = append(edges, label.EdgePosts)
+	}
+	if m.removedgithub_repositories != nil {
+		edges = append(edges, label.EdgeGithubRepositories)
 	}
 	return edges
 }
@@ -2598,15 +2837,24 @@ func (m *LabelMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case label.EdgeGithubRepositories:
+		ids := make([]ent.Value, 0, len(m.removedgithub_repositories))
+		for id := range m.removedgithub_repositories {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *LabelMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.clearedposts {
 		edges = append(edges, label.EdgePosts)
+	}
+	if m.clearedgithub_repositories {
+		edges = append(edges, label.EdgeGithubRepositories)
 	}
 	return edges
 }
@@ -2617,6 +2865,8 @@ func (m *LabelMutation) EdgeCleared(name string) bool {
 	switch name {
 	case label.EdgePosts:
 		return m.clearedposts
+	case label.EdgeGithubRepositories:
+		return m.clearedgithub_repositories
 	}
 	return false
 }
@@ -2635,6 +2885,9 @@ func (m *LabelMutation) ResetEdge(name string) error {
 	switch name {
 	case label.EdgePosts:
 		m.ResetPosts()
+		return nil
+	case label.EdgeGithubRepositories:
+		m.ResetGithubRepositories()
 		return nil
 	}
 	return fmt.Errorf("unknown Label edge %s", name)

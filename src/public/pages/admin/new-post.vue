@@ -26,7 +26,7 @@ function createPost(val: any) {
 
     <div class="p-4 sm:container sm:mx-auto lg:p-0">
       <ClientOnly>
-        <AdminPostCreate> </AdminPostCreate>
+        <AdminPostCreate create @update:post="createPost"> </AdminPostCreate>
       </ClientOnly>
     </div>
   </NuxtLayout>

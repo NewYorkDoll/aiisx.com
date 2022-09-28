@@ -6,7 +6,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
+	"aiisx.com/src/ent/githubrepository"
 	"aiisx.com/src/ent/label"
 	"aiisx.com/src/ent/post"
 	"entgo.io/ent/dialect/sql"
@@ -20,6 +22,40 @@ type LabelCreate struct {
 	mutation *LabelMutation
 	hooks    []Hook
 	conflict []sql.ConflictOption
+}
+
+// SetCreateTime sets the "create_time" field.
+func (lc *LabelCreate) SetCreateTime(t time.Time) *LabelCreate {
+	lc.mutation.SetCreateTime(t)
+	return lc
+}
+
+// SetNillableCreateTime sets the "create_time" field if the given value is not nil.
+func (lc *LabelCreate) SetNillableCreateTime(t *time.Time) *LabelCreate {
+	if t != nil {
+		lc.SetCreateTime(*t)
+	}
+	return lc
+}
+
+// SetUpdateTime sets the "update_time" field.
+func (lc *LabelCreate) SetUpdateTime(t time.Time) *LabelCreate {
+	lc.mutation.SetUpdateTime(t)
+	return lc
+}
+
+// SetNillableUpdateTime sets the "update_time" field if the given value is not nil.
+func (lc *LabelCreate) SetNillableUpdateTime(t *time.Time) *LabelCreate {
+	if t != nil {
+		lc.SetUpdateTime(*t)
+	}
+	return lc
+}
+
+// SetName sets the "name" field.
+func (lc *LabelCreate) SetName(s string) *LabelCreate {
+	lc.mutation.SetName(s)
+	return lc
 }
 
 // AddPostIDs adds the "posts" edge to the Post entity by IDs.
@@ -37,6 +73,21 @@ func (lc *LabelCreate) AddPosts(p ...*Post) *LabelCreate {
 	return lc.AddPostIDs(ids...)
 }
 
+// AddGithubRepositoryIDs adds the "github_repositories" edge to the GithubRepository entity by IDs.
+func (lc *LabelCreate) AddGithubRepositoryIDs(ids ...int) *LabelCreate {
+	lc.mutation.AddGithubRepositoryIDs(ids...)
+	return lc
+}
+
+// AddGithubRepositories adds the "github_repositories" edges to the GithubRepository entity.
+func (lc *LabelCreate) AddGithubRepositories(g ...*GithubRepository) *LabelCreate {
+	ids := make([]int, len(g))
+	for i := range g {
+		ids[i] = g[i].ID
+	}
+	return lc.AddGithubRepositoryIDs(ids...)
+}
+
 // Mutation returns the LabelMutation object of the builder.
 func (lc *LabelCreate) Mutation() *LabelMutation {
 	return lc.mutation
@@ -48,6 +99,9 @@ func (lc *LabelCreate) Save(ctx context.Context) (*Label, error) {
 		err  error
 		node *Label
 	)
+	if err := lc.defaults(); err != nil {
+		return nil, err
+	}
 	if len(lc.hooks) == 0 {
 		if err = lc.check(); err != nil {
 			return nil, err
@@ -111,8 +165,41 @@ func (lc *LabelCreate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (lc *LabelCreate) defaults() error {
+	if _, ok := lc.mutation.CreateTime(); !ok {
+		if label.DefaultCreateTime == nil {
+			return fmt.Errorf("ent: uninitialized label.DefaultCreateTime (forgotten import ent/runtime?)")
+		}
+		v := label.DefaultCreateTime()
+		lc.mutation.SetCreateTime(v)
+	}
+	if _, ok := lc.mutation.UpdateTime(); !ok {
+		if label.DefaultUpdateTime == nil {
+			return fmt.Errorf("ent: uninitialized label.DefaultUpdateTime (forgotten import ent/runtime?)")
+		}
+		v := label.DefaultUpdateTime()
+		lc.mutation.SetUpdateTime(v)
+	}
+	return nil
+}
+
 // check runs all checks and user-defined validators on the builder.
 func (lc *LabelCreate) check() error {
+	if _, ok := lc.mutation.CreateTime(); !ok {
+		return &ValidationError{Name: "create_time", err: errors.New(`ent: missing required field "Label.create_time"`)}
+	}
+	if _, ok := lc.mutation.UpdateTime(); !ok {
+		return &ValidationError{Name: "update_time", err: errors.New(`ent: missing required field "Label.update_time"`)}
+	}
+	if _, ok := lc.mutation.Name(); !ok {
+		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "Label.name"`)}
+	}
+	if v, ok := lc.mutation.Name(); ok {
+		if err := label.NameValidator(v); err != nil {
+			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Label.name": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -141,6 +228,30 @@ func (lc *LabelCreate) createSpec() (*Label, *sqlgraph.CreateSpec) {
 		}
 	)
 	_spec.OnConflict = lc.conflict
+	if value, ok := lc.mutation.CreateTime(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: label.FieldCreateTime,
+		})
+		_node.CreateTime = value
+	}
+	if value, ok := lc.mutation.UpdateTime(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeTime,
+			Value:  value,
+			Column: label.FieldUpdateTime,
+		})
+		_node.UpdateTime = value
+	}
+	if value, ok := lc.mutation.Name(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeString,
+			Value:  value,
+			Column: label.FieldName,
+		})
+		_node.Name = value
+	}
 	if nodes := lc.mutation.PostsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2M,
@@ -160,6 +271,25 @@ func (lc *LabelCreate) createSpec() (*Label, *sqlgraph.CreateSpec) {
 		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
+	if nodes := lc.mutation.GithubRepositoriesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   label.GithubRepositoriesTable,
+			Columns: []string{label.GithubRepositoriesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: githubrepository.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
 	return _node, _spec
 }
 
@@ -167,11 +297,17 @@ func (lc *LabelCreate) createSpec() (*Label, *sqlgraph.CreateSpec) {
 // of the `INSERT` statement. For example:
 //
 //	client.Label.Create().
+//		SetCreateTime(v).
 //		OnConflict(
 //			// Update the row with the new values
 //			// the was proposed for insertion.
 //			sql.ResolveWithNewValues(),
 //		).
+//		// Override some of the fields with custom
+//		// update values.
+//		Update(func(u *ent.LabelUpsert) {
+//			SetCreateTime(v+v).
+//		}).
 //		Exec(ctx)
 func (lc *LabelCreate) OnConflict(opts ...sql.ConflictOption) *LabelUpsertOne {
 	lc.conflict = opts
@@ -206,6 +342,30 @@ type (
 	}
 )
 
+// SetUpdateTime sets the "update_time" field.
+func (u *LabelUpsert) SetUpdateTime(v time.Time) *LabelUpsert {
+	u.Set(label.FieldUpdateTime, v)
+	return u
+}
+
+// UpdateUpdateTime sets the "update_time" field to the value that was provided on create.
+func (u *LabelUpsert) UpdateUpdateTime() *LabelUpsert {
+	u.SetExcluded(label.FieldUpdateTime)
+	return u
+}
+
+// SetName sets the "name" field.
+func (u *LabelUpsert) SetName(v string) *LabelUpsert {
+	u.Set(label.FieldName, v)
+	return u
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *LabelUpsert) UpdateName() *LabelUpsert {
+	u.SetExcluded(label.FieldName)
+	return u
+}
+
 // UpdateNewValues updates the mutable fields using the new values that were set on create.
 // Using this option is equivalent to using:
 //
@@ -216,6 +376,11 @@ type (
 //		Exec(ctx)
 func (u *LabelUpsertOne) UpdateNewValues() *LabelUpsertOne {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		if _, exists := u.create.mutation.CreateTime(); exists {
+			s.SetIgnore(label.FieldCreateTime)
+		}
+	}))
 	return u
 }
 
@@ -244,6 +409,34 @@ func (u *LabelUpsertOne) Update(set func(*LabelUpsert)) *LabelUpsertOne {
 		set(&LabelUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetUpdateTime sets the "update_time" field.
+func (u *LabelUpsertOne) SetUpdateTime(v time.Time) *LabelUpsertOne {
+	return u.Update(func(s *LabelUpsert) {
+		s.SetUpdateTime(v)
+	})
+}
+
+// UpdateUpdateTime sets the "update_time" field to the value that was provided on create.
+func (u *LabelUpsertOne) UpdateUpdateTime() *LabelUpsertOne {
+	return u.Update(func(s *LabelUpsert) {
+		s.UpdateUpdateTime()
+	})
+}
+
+// SetName sets the "name" field.
+func (u *LabelUpsertOne) SetName(v string) *LabelUpsertOne {
+	return u.Update(func(s *LabelUpsert) {
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *LabelUpsertOne) UpdateName() *LabelUpsertOne {
+	return u.Update(func(s *LabelUpsert) {
+		s.UpdateName()
+	})
 }
 
 // Exec executes the query.
@@ -294,6 +487,7 @@ func (lcb *LabelCreateBulk) Save(ctx context.Context) ([]*Label, error) {
 	for i := range lcb.builders {
 		func(i int, root context.Context) {
 			builder := lcb.builders[i]
+			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*LabelMutation)
 				if !ok {
@@ -373,6 +567,11 @@ func (lcb *LabelCreateBulk) ExecX(ctx context.Context) {
 //			// the was proposed for insertion.
 //			sql.ResolveWithNewValues(),
 //		).
+//		// Override some of the fields with custom
+//		// update values.
+//		Update(func(u *ent.LabelUpsert) {
+//			SetCreateTime(v+v).
+//		}).
 //		Exec(ctx)
 func (lcb *LabelCreateBulk) OnConflict(opts ...sql.ConflictOption) *LabelUpsertBulk {
 	lcb.conflict = opts
@@ -410,6 +609,13 @@ type LabelUpsertBulk struct {
 //		Exec(ctx)
 func (u *LabelUpsertBulk) UpdateNewValues() *LabelUpsertBulk {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		for _, b := range u.create.builders {
+			if _, exists := b.mutation.CreateTime(); exists {
+				s.SetIgnore(label.FieldCreateTime)
+			}
+		}
+	}))
 	return u
 }
 
@@ -438,6 +644,34 @@ func (u *LabelUpsertBulk) Update(set func(*LabelUpsert)) *LabelUpsertBulk {
 		set(&LabelUpsert{UpdateSet: update})
 	}))
 	return u
+}
+
+// SetUpdateTime sets the "update_time" field.
+func (u *LabelUpsertBulk) SetUpdateTime(v time.Time) *LabelUpsertBulk {
+	return u.Update(func(s *LabelUpsert) {
+		s.SetUpdateTime(v)
+	})
+}
+
+// UpdateUpdateTime sets the "update_time" field to the value that was provided on create.
+func (u *LabelUpsertBulk) UpdateUpdateTime() *LabelUpsertBulk {
+	return u.Update(func(s *LabelUpsert) {
+		s.UpdateUpdateTime()
+	})
+}
+
+// SetName sets the "name" field.
+func (u *LabelUpsertBulk) SetName(v string) *LabelUpsertBulk {
+	return u.Update(func(s *LabelUpsert) {
+		s.SetName(v)
+	})
+}
+
+// UpdateName sets the "name" field to the value that was provided on create.
+func (u *LabelUpsertBulk) UpdateName() *LabelUpsertBulk {
+	return u.Update(func(s *LabelUpsert) {
+		s.UpdateName()
+	})
 }
 
 // Exec executes the query.

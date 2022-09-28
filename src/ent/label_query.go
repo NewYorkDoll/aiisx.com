@@ -5,9 +5,11 @@ package ent
 import (
 	"context"
 	"database/sql/driver"
+	"errors"
 	"fmt"
 	"math"
 
+	"aiisx.com/src/ent/githubrepository"
 	"aiisx.com/src/ent/label"
 	"aiisx.com/src/ent/post"
 	"aiisx.com/src/ent/predicate"
@@ -19,16 +21,18 @@ import (
 // LabelQuery is the builder for querying Label entities.
 type LabelQuery struct {
 	config
-	limit          *int
-	offset         *int
-	unique         *bool
-	order          []OrderFunc
-	fields         []string
-	predicates     []predicate.Label
-	withPosts      *PostQuery
-	modifiers      []func(*sql.Selector)
-	loadTotal      []func(context.Context, []*Label) error
-	withNamedPosts map[string]*PostQuery
+	limit                       *int
+	offset                      *int
+	unique                      *bool
+	order                       []OrderFunc
+	fields                      []string
+	predicates                  []predicate.Label
+	withPosts                   *PostQuery
+	withGithubRepositories      *GithubRepositoryQuery
+	modifiers                   []func(*sql.Selector)
+	loadTotal                   []func(context.Context, []*Label) error
+	withNamedPosts              map[string]*PostQuery
+	withNamedGithubRepositories map[string]*GithubRepositoryQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -80,6 +84,28 @@ func (lq *LabelQuery) QueryPosts() *PostQuery {
 			sqlgraph.From(label.Table, label.FieldID, selector),
 			sqlgraph.To(post.Table, post.FieldID),
 			sqlgraph.Edge(sqlgraph.M2M, false, label.PostsTable, label.PostsPrimaryKey...),
+		)
+		fromU = sqlgraph.SetNeighbors(lq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryGithubRepositories chains the current query on the "github_repositories" edge.
+func (lq *LabelQuery) QueryGithubRepositories() *GithubRepositoryQuery {
+	query := &GithubRepositoryQuery{config: lq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := lq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := lq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(label.Table, label.FieldID, selector),
+			sqlgraph.To(githubrepository.Table, githubrepository.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, label.GithubRepositoriesTable, label.GithubRepositoriesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(lq.driver.Dialect(), step)
 		return fromU, nil
@@ -263,12 +289,13 @@ func (lq *LabelQuery) Clone() *LabelQuery {
 		return nil
 	}
 	return &LabelQuery{
-		config:     lq.config,
-		limit:      lq.limit,
-		offset:     lq.offset,
-		order:      append([]OrderFunc{}, lq.order...),
-		predicates: append([]predicate.Label{}, lq.predicates...),
-		withPosts:  lq.withPosts.Clone(),
+		config:                 lq.config,
+		limit:                  lq.limit,
+		offset:                 lq.offset,
+		order:                  append([]OrderFunc{}, lq.order...),
+		predicates:             append([]predicate.Label{}, lq.predicates...),
+		withPosts:              lq.withPosts.Clone(),
+		withGithubRepositories: lq.withGithubRepositories.Clone(),
 		// clone intermediate query.
 		sql:    lq.sql.Clone(),
 		path:   lq.path,
@@ -287,8 +314,31 @@ func (lq *LabelQuery) WithPosts(opts ...func(*PostQuery)) *LabelQuery {
 	return lq
 }
 
+// WithGithubRepositories tells the query-builder to eager-load the nodes that are connected to
+// the "github_repositories" edge. The optional arguments are used to configure the query builder of the edge.
+func (lq *LabelQuery) WithGithubRepositories(opts ...func(*GithubRepositoryQuery)) *LabelQuery {
+	query := &GithubRepositoryQuery{config: lq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	lq.withGithubRepositories = query
+	return lq
+}
+
 // GroupBy is used to group vertices by one or more fields/columns.
 // It is often used with aggregate functions, like: count, max, mean, min, sum.
+//
+// Example:
+//
+//	var v []struct {
+//		CreateTime time.Time `json:"create_time,omitempty"`
+//		Count int `json:"count,omitempty"`
+//	}
+//
+//	client.Label.Query().
+//		GroupBy(label.FieldCreateTime).
+//		Aggregate(ent.Count()).
+//		Scan(ctx, &v)
 func (lq *LabelQuery) GroupBy(field string, fields ...string) *LabelGroupBy {
 	grbuild := &LabelGroupBy{config: lq.config}
 	grbuild.fields = append([]string{field}, fields...)
@@ -305,6 +355,16 @@ func (lq *LabelQuery) GroupBy(field string, fields ...string) *LabelGroupBy {
 
 // Select allows the selection one or more fields/columns for the given query,
 // instead of selecting all fields in the entity.
+//
+// Example:
+//
+//	var v []struct {
+//		CreateTime time.Time `json:"create_time,omitempty"`
+//	}
+//
+//	client.Label.Query().
+//		Select(label.FieldCreateTime).
+//		Scan(ctx, &v)
 func (lq *LabelQuery) Select(fields ...string) *LabelSelect {
 	lq.fields = append(lq.fields, fields...)
 	selbuild := &LabelSelect{LabelQuery: lq}
@@ -326,6 +386,12 @@ func (lq *LabelQuery) prepareQuery(ctx context.Context) error {
 		}
 		lq.sql = prev
 	}
+	if label.Policy == nil {
+		return errors.New("ent: uninitialized label.Policy (forgotten import ent/runtime?)")
+	}
+	if err := label.Policy.EvalQuery(ctx, lq); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -333,8 +399,9 @@ func (lq *LabelQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Label,
 	var (
 		nodes       = []*Label{}
 		_spec       = lq.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [2]bool{
 			lq.withPosts != nil,
+			lq.withGithubRepositories != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -365,10 +432,26 @@ func (lq *LabelQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Label,
 			return nil, err
 		}
 	}
+	if query := lq.withGithubRepositories; query != nil {
+		if err := lq.loadGithubRepositories(ctx, query, nodes,
+			func(n *Label) { n.Edges.GithubRepositories = []*GithubRepository{} },
+			func(n *Label, e *GithubRepository) {
+				n.Edges.GithubRepositories = append(n.Edges.GithubRepositories, e)
+			}); err != nil {
+			return nil, err
+		}
+	}
 	for name, query := range lq.withNamedPosts {
 		if err := lq.loadPosts(ctx, query, nodes,
 			func(n *Label) { n.appendNamedPosts(name) },
 			func(n *Label, e *Post) { n.appendNamedPosts(name, e) }); err != nil {
+			return nil, err
+		}
+	}
+	for name, query := range lq.withNamedGithubRepositories {
+		if err := lq.loadGithubRepositories(ctx, query, nodes,
+			func(n *Label) { n.appendNamedGithubRepositories(name) },
+			func(n *Label, e *GithubRepository) { n.appendNamedGithubRepositories(name, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -435,6 +518,37 @@ func (lq *LabelQuery) loadPosts(ctx context.Context, query *PostQuery, nodes []*
 		for kn := range nodes {
 			assign(kn, n)
 		}
+	}
+	return nil
+}
+func (lq *LabelQuery) loadGithubRepositories(ctx context.Context, query *GithubRepositoryQuery, nodes []*Label, init func(*Label), assign func(*Label, *GithubRepository)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*Label)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.GithubRepository(func(s *sql.Selector) {
+		s.Where(sql.InValues(label.GithubRepositoriesColumn, fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.label_github_repositories
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "label_github_repositories" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "label_github_repositories" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
 	}
 	return nil
 }
@@ -550,6 +664,20 @@ func (lq *LabelQuery) WithNamedPosts(name string, opts ...func(*PostQuery)) *Lab
 		lq.withNamedPosts = make(map[string]*PostQuery)
 	}
 	lq.withNamedPosts[name] = query
+	return lq
+}
+
+// WithNamedGithubRepositories tells the query-builder to eager-load the nodes that are connected to the "github_repositories"
+// edge with the given name. The optional arguments are used to configure the query builder of the edge.
+func (lq *LabelQuery) WithNamedGithubRepositories(name string, opts ...func(*GithubRepositoryQuery)) *LabelQuery {
+	query := &GithubRepositoryQuery{config: lq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	if lq.withNamedGithubRepositories == nil {
+		lq.withNamedGithubRepositories = make(map[string]*GithubRepositoryQuery)
+	}
+	lq.withNamedGithubRepositories[name] = query
 	return lq
 }
 

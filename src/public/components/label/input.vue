@@ -25,14 +25,16 @@ function createNewLabel(val: string) {
       name: val,
     },
   }).then((result) => {
-    if (!result.error) {
+    console.log(result.error.value);
+    
+    if (!result.error.value) {
       selectRef.value!.refetch().then(() => {
         selected.value = [...(selected.value ?? []), result.data.value!.createLabel.id];
       });
       newLabelInput.value = "";
       message.success("Created label");
     } else {
-      message.error(result.error.toString());
+      message.error(result.error.value.gqlErrors[0].message);
     }
   });
 }

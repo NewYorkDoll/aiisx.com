@@ -9,6 +9,7 @@ import (
 	"aiisx.com/src/database/schema"
 	"aiisx.com/src/ent/githubevent"
 	"aiisx.com/src/ent/githubrepository"
+	"aiisx.com/src/ent/label"
 	"aiisx.com/src/ent/post"
 	"aiisx.com/src/ent/user"
 
@@ -100,6 +101,34 @@ func init() {
 	githubrepositoryDescArchived := githubrepositoryFields[14].Descriptor()
 	// githubrepository.DefaultArchived holds the default value on creation for the archived field.
 	githubrepository.DefaultArchived = githubrepositoryDescArchived.Default.(bool)
+	labelMixin := schema.Label{}.Mixin()
+	label.Policy = privacy.NewPolicies(schema.Label{})
+	label.Hooks[0] = func(next ent.Mutator) ent.Mutator {
+		return ent.MutateFunc(func(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+			if err := label.Policy.EvalMutation(ctx, m); err != nil {
+				return nil, err
+			}
+			return next.Mutate(ctx, m)
+		})
+	}
+	labelMixinFields0 := labelMixin[0].Fields()
+	_ = labelMixinFields0
+	labelFields := schema.Label{}.Fields()
+	_ = labelFields
+	// labelDescCreateTime is the schema descriptor for create_time field.
+	labelDescCreateTime := labelMixinFields0[0].Descriptor()
+	// label.DefaultCreateTime holds the default value on creation for the create_time field.
+	label.DefaultCreateTime = labelDescCreateTime.Default.(func() time.Time)
+	// labelDescUpdateTime is the schema descriptor for update_time field.
+	labelDescUpdateTime := labelMixinFields0[1].Descriptor()
+	// label.DefaultUpdateTime holds the default value on creation for the update_time field.
+	label.DefaultUpdateTime = labelDescUpdateTime.Default.(func() time.Time)
+	// label.UpdateDefaultUpdateTime holds the default value on update for the update_time field.
+	label.UpdateDefaultUpdateTime = labelDescUpdateTime.UpdateDefault.(func() time.Time)
+	// labelDescName is the schema descriptor for name field.
+	labelDescName := labelFields[0].Descriptor()
+	// label.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	label.NameValidator = labelDescName.Validators[0].(func(string) error)
 	postMixin := schema.Post{}.Mixin()
 	postMixinFields0 := postMixin[0].Fields()
 	_ = postMixinFields0

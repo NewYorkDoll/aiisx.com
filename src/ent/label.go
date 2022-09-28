@@ -5,6 +5,7 @@ package ent
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"aiisx.com/src/ent/label"
 	"entgo.io/ent/dialect/sql"
@@ -12,9 +13,15 @@ import (
 
 // Label is the model entity for the Label schema.
 type Label struct {
-	config
+	config `json:"-"`
 	// ID of the ent.
 	ID int `json:"id,omitempty"`
+	// CreateTime holds the value of the "create_time" field.
+	CreateTime time.Time `json:"create_time,omitempty"`
+	// UpdateTime holds the value of the "update_time" field.
+	UpdateTime time.Time `json:"update_time,omitempty"`
+	// Name holds the value of the "name" field.
+	Name string `json:"name,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the LabelQuery when eager-loading is set.
 	Edges LabelEdges `json:"edges"`
@@ -24,13 +31,16 @@ type Label struct {
 type LabelEdges struct {
 	// Posts holds the value of the posts edge.
 	Posts []*Post `json:"posts,omitempty"`
+	// GithubRepositories holds the value of the github_repositories edge.
+	GithubRepositories []*GithubRepository `json:"github_repositories,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 	// totalCount holds the count of the edges above.
-	totalCount [1]map[string]int
+	totalCount [2]map[string]int
 
-	namedPosts map[string][]*Post
+	namedPosts              map[string][]*Post
+	namedGithubRepositories map[string][]*GithubRepository
 }
 
 // PostsOrErr returns the Posts value or an error if the edge
@@ -42,6 +52,15 @@ func (e LabelEdges) PostsOrErr() ([]*Post, error) {
 	return nil, &NotLoadedError{edge: "posts"}
 }
 
+// GithubRepositoriesOrErr returns the GithubRepositories value or an error if the edge
+// was not loaded in eager-loading.
+func (e LabelEdges) GithubRepositoriesOrErr() ([]*GithubRepository, error) {
+	if e.loadedTypes[1] {
+		return e.GithubRepositories, nil
+	}
+	return nil, &NotLoadedError{edge: "github_repositories"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*Label) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
@@ -49,6 +68,10 @@ func (*Label) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case label.FieldID:
 			values[i] = new(sql.NullInt64)
+		case label.FieldName:
+			values[i] = new(sql.NullString)
+		case label.FieldCreateTime, label.FieldUpdateTime:
+			values[i] = new(sql.NullTime)
 		default:
 			return nil, fmt.Errorf("unexpected column %q for type Label", columns[i])
 		}
@@ -70,6 +93,24 @@ func (l *Label) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
 			l.ID = int(value.Int64)
+		case label.FieldCreateTime:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field create_time", values[i])
+			} else if value.Valid {
+				l.CreateTime = value.Time
+			}
+		case label.FieldUpdateTime:
+			if value, ok := values[i].(*sql.NullTime); !ok {
+				return fmt.Errorf("unexpected type %T for field update_time", values[i])
+			} else if value.Valid {
+				l.UpdateTime = value.Time
+			}
+		case label.FieldName:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field name", values[i])
+			} else if value.Valid {
+				l.Name = value.String
+			}
 		}
 	}
 	return nil
@@ -78,6 +119,11 @@ func (l *Label) assignValues(columns []string, values []any) error {
 // QueryPosts queries the "posts" edge of the Label entity.
 func (l *Label) QueryPosts() *PostQuery {
 	return (&LabelClient{config: l.config}).QueryPosts(l)
+}
+
+// QueryGithubRepositories queries the "github_repositories" edge of the Label entity.
+func (l *Label) QueryGithubRepositories() *GithubRepositoryQuery {
+	return (&LabelClient{config: l.config}).QueryGithubRepositories(l)
 }
 
 // Update returns a builder for updating this Label.
@@ -102,7 +148,15 @@ func (l *Label) Unwrap() *Label {
 func (l *Label) String() string {
 	var builder strings.Builder
 	builder.WriteString("Label(")
-	builder.WriteString(fmt.Sprintf("id=%v", l.ID))
+	builder.WriteString(fmt.Sprintf("id=%v, ", l.ID))
+	builder.WriteString("create_time=")
+	builder.WriteString(l.CreateTime.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("update_time=")
+	builder.WriteString(l.UpdateTime.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("name=")
+	builder.WriteString(l.Name)
 	builder.WriteByte(')')
 	return builder.String()
 }
@@ -128,6 +182,30 @@ func (l *Label) appendNamedPosts(name string, edges ...*Post) {
 		l.Edges.namedPosts[name] = []*Post{}
 	} else {
 		l.Edges.namedPosts[name] = append(l.Edges.namedPosts[name], edges...)
+	}
+}
+
+// NamedGithubRepositories returns the GithubRepositories named value or an error if the edge was not
+// loaded in eager-loading with this name.
+func (l *Label) NamedGithubRepositories(name string) ([]*GithubRepository, error) {
+	if l.Edges.namedGithubRepositories == nil {
+		return nil, &NotLoadedError{edge: name}
+	}
+	nodes, ok := l.Edges.namedGithubRepositories[name]
+	if !ok {
+		return nil, &NotLoadedError{edge: name}
+	}
+	return nodes, nil
+}
+
+func (l *Label) appendNamedGithubRepositories(name string, edges ...*GithubRepository) {
+	if l.Edges.namedGithubRepositories == nil {
+		l.Edges.namedGithubRepositories = make(map[string][]*GithubRepository)
+	}
+	if len(edges) == 0 {
+		l.Edges.namedGithubRepositories[name] = []*GithubRepository{}
+	} else {
+		l.Edges.namedGithubRepositories[name] = append(l.Edges.namedGithubRepositories[name], edges...)
 	}
 }
 

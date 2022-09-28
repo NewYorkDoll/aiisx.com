@@ -253,6 +253,89 @@ func (l *LabelQuery) collectField(ctx context.Context, op *graphql.OperationCont
 			l.WithNamedPosts(alias, func(wq *PostQuery) {
 				*wq = *query
 			})
+		case "githubRepositories", "github_repositories":
+			var (
+				alias = field.Alias
+				path  = append(path, alias)
+				query = &GithubRepositoryQuery{config: l.config}
+			)
+			args := newGithubRepositoryPaginateArgs(fieldArgs(ctx, new(GithubRepositoryWhereInput), path...))
+			if err := validateFirstLast(args.first, args.last); err != nil {
+				return fmt.Errorf("validate first and last in path %q: %w", path, err)
+			}
+			pager, err := newGithubRepositoryPager(args.opts)
+			if err != nil {
+				return fmt.Errorf("create new pager in path %q: %w", path, err)
+			}
+			if query, err = pager.applyFilter(query); err != nil {
+				return err
+			}
+			ignoredEdges := !hasCollectedField(ctx, append(path, edgesField)...)
+			if hasCollectedField(ctx, append(path, totalCountField)...) || hasCollectedField(ctx, append(path, pageInfoField)...) {
+				hasPagination := args.after != nil || args.first != nil || args.before != nil || args.last != nil
+				if hasPagination || ignoredEdges {
+					query := query.Clone()
+					l.loadTotal = append(l.loadTotal, func(ctx context.Context, nodes []*Label) error {
+						ids := make([]driver.Value, len(nodes))
+						for i := range nodes {
+							ids[i] = nodes[i].ID
+						}
+						var v []struct {
+							NodeID int `sql:"label_github_repositories"`
+							Count  int `sql:"count"`
+						}
+						query.Where(func(s *sql.Selector) {
+							s.Where(sql.InValues(label.GithubRepositoriesColumn, ids...))
+						})
+						if err := query.GroupBy(label.GithubRepositoriesColumn).Aggregate(Count()).Scan(ctx, &v); err != nil {
+							return err
+						}
+						m := make(map[int]int, len(v))
+						for i := range v {
+							m[v[i].NodeID] = v[i].Count
+						}
+						for i := range nodes {
+							n := m[nodes[i].ID]
+							if nodes[i].Edges.totalCount[1] == nil {
+								nodes[i].Edges.totalCount[1] = make(map[string]int)
+							}
+							nodes[i].Edges.totalCount[1][alias] = n
+						}
+						return nil
+					})
+				} else {
+					l.loadTotal = append(l.loadTotal, func(_ context.Context, nodes []*Label) error {
+						for i := range nodes {
+							n := len(nodes[i].Edges.GithubRepositories)
+							if nodes[i].Edges.totalCount[1] == nil {
+								nodes[i].Edges.totalCount[1] = make(map[string]int)
+							}
+							nodes[i].Edges.totalCount[1][alias] = n
+						}
+						return nil
+					})
+				}
+			}
+			if ignoredEdges || (args.first != nil && *args.first == 0) || (args.last != nil && *args.last == 0) {
+				continue
+			}
+
+			query = pager.applyCursors(query, args.after, args.before)
+			if limit := paginateLimit(args.first, args.last); limit > 0 {
+				modify := limitRows(label.GithubRepositoriesColumn, limit, pager.orderExpr(args.last != nil))
+				query.modifiers = append(query.modifiers, modify)
+			} else {
+				query = pager.applyOrder(query, args.last != nil)
+			}
+			path = append(path, edgesField, nodeField)
+			if field := collectedField(ctx, path...); field != nil {
+				if err := query.collectField(ctx, op, *field, path, satisfies...); err != nil {
+					return err
+				}
+			}
+			l.WithNamedGithubRepositories(alias, func(wq *GithubRepositoryQuery) {
+				*wq = *query
+			})
 		}
 	}
 	return nil
@@ -280,6 +363,28 @@ func newLabelPaginateArgs(rv map[string]interface{}) *labelPaginateArgs {
 	}
 	if v := rv[beforeField]; v != nil {
 		args.before = v.(*Cursor)
+	}
+	if v, ok := rv[orderByField]; ok {
+		switch v := v.(type) {
+		case map[string]interface{}:
+			var (
+				err1, err2 error
+				order      = &LabelOrder{Field: &LabelOrderField{}}
+			)
+			if d, ok := v[directionField]; ok {
+				err1 = order.Direction.UnmarshalGQL(d)
+			}
+			if f, ok := v[fieldField]; ok {
+				err2 = order.Field.UnmarshalGQL(f)
+			}
+			if err1 == nil && err2 == nil {
+				args.opts = append(args.opts, WithLabelOrder(order))
+			}
+		case *LabelOrder:
+			if v != nil {
+				args.opts = append(args.opts, WithLabelOrder(v))
+			}
+		}
 	}
 	if v, ok := rv[whereField].(*LabelWhereInput); ok {
 		args.opts = append(args.opts, WithLabelFilter(v.Filter))
