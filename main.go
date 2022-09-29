@@ -88,7 +88,7 @@ func main() {
 			}
 			gothic.StoreInSession("_auth", fmt.Sprintf("%v", id), ctx.Request, ctx.Writer)
 		}
-		ctx.Redirect(http.StatusMovedPermanently, "/")
+		ctx.Redirect(http.StatusMovedPermanently, "/admin")
 	})
 	gh.NewChient(ctx, config.GITHUB_ACCESS_TOKEN)
 	// graphql服务
