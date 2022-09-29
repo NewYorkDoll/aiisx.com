@@ -13,6 +13,7 @@ body {
   height: 100%;
   width: 100%;
   @apply flex flex-auto;
+  @apply bg-zinc-800 text-zinc-100;
   font-family: Consolas, monaco, monospace;
   background-color: #101014;
 }

@@ -30,7 +30,7 @@ const state = useBaseState();
         {{ props.error }}
       </n-alert>
       <template v-else>
-        <slot><router-view /></slot>
+        <slot></slot>
       </template>
     </div>
 

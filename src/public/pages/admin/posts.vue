@@ -5,9 +5,9 @@ definePageMeta({
   layout: false,
 });
 
-const regenerate = () => {};
+const regenerate = () => refresh;
 
-const { data, error } = await useAsyncGql("getPosts", {
+const { data, error, refresh } = await useAsyncGql("getPosts", {
   first: 100,
   before: null,
 });

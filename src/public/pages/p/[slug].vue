@@ -13,7 +13,17 @@ const { data, error, pending } = await useAsyncGql("getPostContent", {
 });
 
 const post = computed(() => data?.value?.posts?.edges![0]?.node);
-const postRef = ref(null);
+useHead({
+  title: `${post.value?.title} - ${post.value?.author.login}`,
+  meta: [
+    { name: "description", content: `${post.value?.title} - ${post.value?.slug}` },
+    {
+      name: "keywords",
+      content: post.value?.labels.edges?.map((item) => item?.node?.name),
+    },
+  ],
+});
+const postRef = ref<Node | null>(null);
 </script>
 
 <template>
@@ -24,7 +34,9 @@ const postRef = ref(null);
     affix
     class="order-last md:order-first"
   >
-    <n-back-top :visibility-height="600" class="z-[9999]" />
+    <client-only>
+      <n-back-top :visibility-height="600" class="z-[9999]" />
+    </client-only>
 
     <n-page-header class="container hidden mb-2 md:inline-flex">
       <template #title>
@@ -78,7 +90,7 @@ const postRef = ref(null);
           <n-button type="success" tertiary size="small"> Edit post </n-button>
         </router-link>
       </div>
-      <CoreTableOfContents :element="postRef" />
+      <CoreTableOfContents :element="postRef!" />
       <div>
         <div class="text-emerald-500">Post Labels</div>
         <div class="flex flex-wrap gap-1">

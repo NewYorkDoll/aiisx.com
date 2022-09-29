@@ -14,7 +14,7 @@
     "@iconify-json/mdi": "^1.1.33",
     "@nuxtjs/tailwindcss": "^5.3.3",
     "autoprefixer": "^10.4.11",
-    "nuxt": "3.0.0-rc.10",
+    "nuxt": "3.0.0-rc.11",
     "postcss": "^8.4.16",
     "tailwindcss": "^3.1.8",
     "vue-gtag-next": "^1.14.0"
@@ -29,7 +29,6 @@
     "@unocss/preset-icons": "^0.45.22",
     "@vueuse/components": "^9.2.0",
     "@vueuse/core": "^9.2.0",
-    "@vueuse/motion": "2.0.0-beta.12",
     "@vueuse/router": "^9.3.0",
     "codemirror": "^6.0.1",
     "graphql": "^16.6.0",

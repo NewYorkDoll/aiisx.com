@@ -81,6 +81,7 @@ export default defineNuxtConfig({
       noExternal: ["codemirror"],
     },
     optimizeDeps: {
+      exclude: ["fsevents"],
       include:
         process.env.NODE_ENV === "development"
           ? ["naive-ui", "vueuc", "date-fns-tz/esm/formatInTimeZone"]

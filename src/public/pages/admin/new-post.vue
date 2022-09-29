@@ -17,7 +17,6 @@ function createPost(val: Post) {
       message.error(result.error.value.gqlErrors[0].message);
     }
   });
-  console.log(val);
 }
 </script>
 
