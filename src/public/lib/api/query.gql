@@ -131,3 +131,34 @@ query getLabels($where: LabelWhereInput) {
     }
   }
 }
+
+query getPostContent($slug: String!) {
+  posts(where: { slugEqualFold: $slug }) {
+    edges {
+      node {
+        id
+        title
+        slug
+        content
+        contentHTML
+        viewCount
+        public
+        publishedAt
+        author {
+          name
+          login
+          avatarURL
+          htmlURL
+        }
+        labels {
+          edges {
+            node {
+              id
+              name
+            }
+          }
+        }
+      }
+    }
+  }
+}

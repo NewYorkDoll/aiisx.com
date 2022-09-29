@@ -1,11 +1,15 @@
 package schema
 
 import (
+	"context"
 	"regexp"
 	"time"
 
+	"aiisx.com/src/ent/privacy"
 	"entgo.io/contrib/entgql"
 	"entgo.io/ent"
+	"entgo.io/ent/dialect"
+	"entgo.io/ent/entql"
 	"entgo.io/ent/schema"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
@@ -26,11 +30,17 @@ func (Post) Fields() []ent.Field {
 		field.String("title").MaxLen(100).Annotations(
 			entgql.OrderField("TITLE"),
 		),
-		field.String("content").NotEmpty(),
-		field.String("content_html").NotEmpty().Annotations(
+		field.String("content").SchemaType(map[string]string{
+			dialect.MySQL: "text", // Override MySQL.
+		}).MaxLen(15000).NotEmpty(),
+		field.String("content_html").SchemaType(map[string]string{
+			dialect.MySQL: "text", // Override MySQL.
+		}).MaxLen(50000).NotEmpty().Annotations(
 			entgql.Skip(entgql.SkipMutationCreateInput | entgql.SkipMutationUpdateInput),
 		),
-		field.String("summary").NotEmpty().Annotations(
+		field.String("summary").SchemaType(map[string]string{
+			dialect.MySQL: "text", // Override MySQL.
+		}).MaxLen(10000).NotEmpty().Annotations(
 			entgql.Skip(entgql.SkipMutationCreateInput | entgql.SkipMutationUpdateInput),
 		),
 		field.Time("published_at").Default(time.Now).Annotations(
@@ -47,6 +57,28 @@ func (Post) Fields() []ent.Field {
 func (Post) Mixin() []ent.Mixin {
 	return []ent.Mixin{
 		mixin.Time{},
+	}
+}
+
+func (Post) Policy() ent.Policy {
+	return privacy.Policy{
+		Mutation: privacy.MutationPolicy{
+			privacy.ContextQueryMutationRule(func(ctx context.Context) error { return privacy.Allow }),
+		},
+		Query: privacy.QueryPolicy{
+
+			privacy.FilterFunc(func(ctx context.Context, f privacy.Filter) error {
+				type PublicFilter interface {
+					WherePublic(p entql.BoolP)
+				}
+				_, ok := f.(PublicFilter)
+				if !ok {
+					return privacy.Denyf("missing public field in filter")
+				}
+				return privacy.Skip
+			}),
+			privacy.AlwaysAllowRule(),
+		},
 	}
 }
 

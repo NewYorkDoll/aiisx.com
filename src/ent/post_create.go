@@ -161,7 +161,9 @@ func (pc *PostCreate) Save(ctx context.Context) (*Post, error) {
 		err  error
 		node *Post
 	)
-	pc.defaults()
+	if err := pc.defaults(); err != nil {
+		return nil, err
+	}
 	if len(pc.hooks) == 0 {
 		if err = pc.check(); err != nil {
 			return nil, err
@@ -226,16 +228,25 @@ func (pc *PostCreate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (pc *PostCreate) defaults() {
+func (pc *PostCreate) defaults() error {
 	if _, ok := pc.mutation.CreateTime(); !ok {
+		if post.DefaultCreateTime == nil {
+			return fmt.Errorf("ent: uninitialized post.DefaultCreateTime (forgotten import ent/runtime?)")
+		}
 		v := post.DefaultCreateTime()
 		pc.mutation.SetCreateTime(v)
 	}
 	if _, ok := pc.mutation.UpdateTime(); !ok {
+		if post.DefaultUpdateTime == nil {
+			return fmt.Errorf("ent: uninitialized post.DefaultUpdateTime (forgotten import ent/runtime?)")
+		}
 		v := post.DefaultUpdateTime()
 		pc.mutation.SetUpdateTime(v)
 	}
 	if _, ok := pc.mutation.PublishedAt(); !ok {
+		if post.DefaultPublishedAt == nil {
+			return fmt.Errorf("ent: uninitialized post.DefaultPublishedAt (forgotten import ent/runtime?)")
+		}
 		v := post.DefaultPublishedAt()
 		pc.mutation.SetPublishedAt(v)
 	}
@@ -247,6 +258,7 @@ func (pc *PostCreate) defaults() {
 		v := post.DefaultPublic
 		pc.mutation.SetPublic(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.

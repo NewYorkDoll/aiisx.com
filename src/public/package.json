@@ -30,6 +30,7 @@
     "@vueuse/components": "^9.2.0",
     "@vueuse/core": "^9.2.0",
     "@vueuse/motion": "2.0.0-beta.12",
+    "@vueuse/router": "^9.3.0",
     "codemirror": "^6.0.1",
     "graphql": "^16.6.0",
     "naive-ui": "^2.33.3",

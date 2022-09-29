@@ -4,16 +4,17 @@ import { EditorView } from "@codemirror/view";
 import { markdown } from "@codemirror/lang-markdown";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { computed, ref } from "vue";
+import { Post } from "~~/lib/api";
 
 const codeExtensions = [markdown(), oneDark, EditorView.lineWrapping];
 const props = defineProps<{
-  post?: any;
+  post?: Post;
   create?: boolean;
 }>();
 const emit = defineEmits(["update:post"]);
-const post = ref<any>(props.post ?? ({} as any));
+const post = ref<Post>(props.post ?? ({} as Post));
 const labelIDs = ref<string[]>(
-  props.post?.labels?.edges?.map(({ node }: { node: any }) => node.id) ?? []
+  props.post?.labels?.edges?.map((item) => item!.node!.id) ?? []
 );
 const datetime = computed({
   get: () => Date.parse(post.value.publishedAt ?? new Date()),
@@ -83,7 +84,7 @@ const datetime = computed({
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="postcss">
 .grid-sidebar {
   @apply grid-cols-1 lg:grid-cols-[1fr,280px];
 }

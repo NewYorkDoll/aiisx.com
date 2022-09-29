@@ -58,7 +58,7 @@ func main() {
 	defer db.Close()
 	ctx = ent.NewContext(log.NewContext(context.Background(), logger), db)
 	database.Migrate(ctx, logger)
-
+	database.RegisterHooks(ctx)
 	auth := auth.NewAuthHandler[ent.User, int](
 		database.NewAuthService(db, config.GITHUB_USERID),
 		securecookie.GenerateRandomKey(16),
@@ -110,6 +110,7 @@ func main() {
 		ctx.Redirect(http.StatusMovedPermanently, "/")
 	})
 	r.GET("/", ReverseProxy())
+	r.GET("/p/*id", ReverseProxy())
 	r.GET("/error/*id", ReverseProxy())
 	r.GET("/posts", ReverseProxy())
 	r.GET("/repost", ReverseProxy())

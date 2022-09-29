@@ -130,6 +130,15 @@ func init() {
 	// label.NameValidator is a validator for the "name" field. It is called by the builders before save.
 	label.NameValidator = labelDescName.Validators[0].(func(string) error)
 	postMixin := schema.Post{}.Mixin()
+	post.Policy = privacy.NewPolicies(schema.Post{})
+	post.Hooks[0] = func(next ent.Mutator) ent.Mutator {
+		return ent.MutateFunc(func(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+			if err := post.Policy.EvalMutation(ctx, m); err != nil {
+				return nil, err
+			}
+			return next.Mutate(ctx, m)
+		})
+	}
 	postMixinFields0 := postMixin[0].Fields()
 	_ = postMixinFields0
 	postFields := schema.Post{}.Fields()
@@ -155,15 +164,57 @@ func init() {
 	// postDescContent is the schema descriptor for content field.
 	postDescContent := postFields[2].Descriptor()
 	// post.ContentValidator is a validator for the "content" field. It is called by the builders before save.
-	post.ContentValidator = postDescContent.Validators[0].(func(string) error)
+	post.ContentValidator = func() func(string) error {
+		validators := postDescContent.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(content string) error {
+			for _, fn := range fns {
+				if err := fn(content); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
 	// postDescContentHTML is the schema descriptor for content_html field.
 	postDescContentHTML := postFields[3].Descriptor()
 	// post.ContentHTMLValidator is a validator for the "content_html" field. It is called by the builders before save.
-	post.ContentHTMLValidator = postDescContentHTML.Validators[0].(func(string) error)
+	post.ContentHTMLValidator = func() func(string) error {
+		validators := postDescContentHTML.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(content_html string) error {
+			for _, fn := range fns {
+				if err := fn(content_html); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
 	// postDescSummary is the schema descriptor for summary field.
 	postDescSummary := postFields[4].Descriptor()
 	// post.SummaryValidator is a validator for the "summary" field. It is called by the builders before save.
-	post.SummaryValidator = postDescSummary.Validators[0].(func(string) error)
+	post.SummaryValidator = func() func(string) error {
+		validators := postDescSummary.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(summary string) error {
+			for _, fn := range fns {
+				if err := fn(summary); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
 	// postDescPublishedAt is the schema descriptor for published_at field.
 	postDescPublishedAt := postFields[5].Descriptor()
 	// post.DefaultPublishedAt holds the default value on creation for the published_at field.

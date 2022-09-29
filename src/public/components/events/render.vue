@@ -93,7 +93,7 @@ onMounted(() => {
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="postcss">
 #main {
   font-size: 1.05em;
 }

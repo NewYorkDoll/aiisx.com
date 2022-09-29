@@ -10,6 +10,7 @@ import (
 	"aiisx.com/src/database/graphql/graph/generated"
 	"aiisx.com/src/database/graphql/graph/model"
 	"aiisx.com/src/ent"
+	"ariga.io/entcache"
 )
 
 // License is the resolver for the license field.
@@ -48,10 +49,13 @@ func (r *queryResolver) Githubrepositories(ctx context.Context, after *ent.Curso
 // Labels is the resolver for the labels field.
 func (r *queryResolver) Labels(ctx context.Context, after *ent.Cursor, first *int, before *ent.Cursor, last *int, orderBy *ent.LabelOrder, where *ent.LabelWhereInput) (*ent.LabelConnection, error) {
 	db := ent.FromContext(ctx)
-	return db.Label.Query().Paginate(
-		ctx, after, first, before, last,
+	labelQ := db.Label.Query()
+	labels, err := labelQ.Paginate(
+		// entcache.Skip(ctx) skip cache
+		entcache.Skip(ctx), after, first, before, last,
 		ent.WithLabelFilter(where.Filter),
 	)
+	return labels, err
 }
 
 // Posts is the resolver for the posts field.

@@ -5,6 +5,7 @@ package ent
 import (
 	"context"
 	"database/sql/driver"
+	"errors"
 	"fmt"
 	"math"
 
@@ -384,6 +385,12 @@ func (pq *PostQuery) prepareQuery(ctx context.Context) error {
 			return err
 		}
 		pq.sql = prev
+	}
+	if post.Policy == nil {
+		return errors.New("ent: uninitialized post.Policy (forgotten import ent/runtime?)")
+	}
+	if err := post.Policy.EvalQuery(ctx, pq); err != nil {
+		return err
 	}
 	return nil
 }

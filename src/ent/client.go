@@ -577,7 +577,8 @@ func (c *PostClient) QueryLabels(po *Post) *LabelQuery {
 
 // Hooks returns the client hooks.
 func (c *PostClient) Hooks() []Hook {
-	return c.hooks.Post
+	hooks := c.hooks.Post
+	return append(hooks[:len(hooks):len(hooks)], post.Hooks[:]...)
 }
 
 // UserClient is a client for the User schema.

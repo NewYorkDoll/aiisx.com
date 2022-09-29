@@ -55,9 +55,7 @@ if (!state.base || !state.base.self) {
           </n-spin>
         </template>
         <template v-else>
-          <n-message-provider>
-            <slot></slot>
-          </n-message-provider>
+          <slot></slot>
         </template>
       </n-layout>
     </n-layout>

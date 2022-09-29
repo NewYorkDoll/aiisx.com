@@ -179,7 +179,9 @@ func (pu *PostUpdate) Save(ctx context.Context) (int, error) {
 		err      error
 		affected int
 	)
-	pu.defaults()
+	if err := pu.defaults(); err != nil {
+		return 0, err
+	}
 	if len(pu.hooks) == 0 {
 		if err = pu.check(); err != nil {
 			return 0, err
@@ -235,11 +237,15 @@ func (pu *PostUpdate) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (pu *PostUpdate) defaults() {
+func (pu *PostUpdate) defaults() error {
 	if _, ok := pu.mutation.UpdateTime(); !ok {
+		if post.UpdateDefaultUpdateTime == nil {
+			return fmt.Errorf("ent: uninitialized post.UpdateDefaultUpdateTime (forgotten import ent/runtime?)")
+		}
 		v := post.UpdateDefaultUpdateTime()
 		pu.mutation.SetUpdateTime(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.
@@ -632,7 +638,9 @@ func (puo *PostUpdateOne) Save(ctx context.Context) (*Post, error) {
 		err  error
 		node *Post
 	)
-	puo.defaults()
+	if err := puo.defaults(); err != nil {
+		return nil, err
+	}
 	if len(puo.hooks) == 0 {
 		if err = puo.check(); err != nil {
 			return nil, err
@@ -694,11 +702,15 @@ func (puo *PostUpdateOne) ExecX(ctx context.Context) {
 }
 
 // defaults sets the default values of the builder before save.
-func (puo *PostUpdateOne) defaults() {
+func (puo *PostUpdateOne) defaults() error {
 	if _, ok := puo.mutation.UpdateTime(); !ok {
+		if post.UpdateDefaultUpdateTime == nil {
+			return fmt.Errorf("ent: uninitialized post.UpdateDefaultUpdateTime (forgotten import ent/runtime?)")
+		}
 		v := post.UpdateDefaultUpdateTime()
 		puo.mutation.SetUpdateTime(v)
 	}
+	return nil
 }
 
 // check runs all checks and user-defined validators on the builder.
