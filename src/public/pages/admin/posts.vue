@@ -1,19 +1,29 @@
 <script setup lang="ts">
 import { useTimeAgo } from "@vueuse/core";
+import { useMessage } from "naive-ui";
 
 definePageMeta({
   layout: false,
 });
 
 const regenerate = () => refresh;
-
+const message = useMessage();
 const { data, error, refresh } = await useAsyncGql("getPosts", {
   first: 100,
   before: null,
 });
 const posts = computed(() => data?.value?.posts!.edges!.map((v) => v!.node));
-const deletePost = (val: any) => {
-  console.log(val);
+const deletePost = (id: string) => {
+  useAsyncGql("deletePost", {
+    id,
+  }).then(({ error }) => {
+    if (error.value) {
+      message.error(error.value.gqlErrors[0].message);
+    } else {
+      message.success("delete success!");
+      refresh();
+    }
+  });
 };
 </script>
 
@@ -54,7 +64,6 @@ const deletePost = (val: any) => {
             <td class="hidden md:flex">
               <n-popover
                 style="max-height: 240px"
-                trigger="hover"
                 content-style="padding: 0;"
                 scrollable
                 placement="left"
@@ -62,7 +71,6 @@ const deletePost = (val: any) => {
                 <template #trigger>
                   <n-button size="small">{{ post!.labels.edges!.length }} tags</n-button>
                 </template>
-
                 <CoreObjectRender
                   :value="post!.labels"
                   linkable
@@ -77,7 +85,7 @@ const deletePost = (val: any) => {
               {{ useTimeAgo(Date.parse(post!.publishedAt)).value }}
             </td>
             <td>
-              <router-link :to="{ path: `admin-edit-post/${post!.id}` }">
+              <router-link :to="{ path: `edit-post/${post!.id}` }">
                 <n-button size="small" type="primary" tertiary>
                   <n-icon class="mr-1"><div class="i-mdi-pencil-outline"></div> </n-icon>
                   Edit
@@ -88,7 +96,7 @@ const deletePost = (val: any) => {
                 type="error"
                 tertiary
                 class="ml-2"
-                @click="deletePost(post!)"
+                @click="deletePost(post?.id!)"
               >
                 <n-icon class="mr-1"><div class="i-mdi-trash-can-outline"></div></n-icon>
                 Delete

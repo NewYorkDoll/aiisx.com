@@ -45,6 +45,8 @@ const state = useBaseState();
         target="_blank"
         >{{ state.base!.githubUser.login }}</a
       >
+      <br />
+      <a href="https://beian.miit.gov.cn/" target="_blank">宁ICP备16000711号</a>
     </span>
   </div>
 </template>

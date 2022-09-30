@@ -9,8 +9,8 @@ type SortFields<T> = {
 };
 
 type Filter = {
-  order: ComputedRef<string>;
-  orderBy: ComputedRef<string>;
+  order: string;
+  orderBy: string;
 };
 
 export type Sorter = {
@@ -69,14 +69,14 @@ export function useSorter(
             ? direction.value
             : defaultDirection
         ).toUpperCase();
-      }),
+      }).value,
       orderBy: computed(() => {
         return (
           Object.keys(fields).includes(field.value!)
             ? field.value!
             : defaultField!
         ).toUpperCase();
-      }),
+      }).value,
     },
   };
 }

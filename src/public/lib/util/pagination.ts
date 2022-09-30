@@ -3,10 +3,10 @@ import { shallowEqual } from "@/lib/util/equal";
 import type { ComputedRef, Ref, WatchStopHandle } from "vue";
 
 type Filter = {
-  first: ComputedRef<number | null>;
-  last: ComputedRef<number | null>;
-  before: ComputedRef<string | null>;
-  after: ComputedRef<string | null>;
+  first: number | null;
+  last: number | null;
+  before: string | null;
+  after: string | null;
 };
 
 /**
@@ -19,18 +19,18 @@ type Filter = {
  * @param {number} [size=10]
  * @return {Filter}
  */
-export function usePagination(cursor: Ref<string>, size = 10): Filter {
+export function usePagination(cursor: Ref<string | null>, size = 10): Filter {
   return {
     first: computed(() =>
       !cursor.value ? size : cursor.value?.startsWith("a.") ? size : null
-    ),
-    last: computed(() => (cursor.value?.startsWith("b.") ? size : null)),
+    ).value,
+    last: computed(() => (cursor.value?.startsWith("b.") ? size : null)).value,
     before: computed(() =>
       cursor.value?.startsWith("b.") ? cursor.value.split(".")[1] : null
-    ),
+    ).value,
     after: computed(() =>
       cursor.value?.startsWith("a.") ? cursor.value.split(".")[1] : null
-    ),
+    ).value,
   };
 }
 

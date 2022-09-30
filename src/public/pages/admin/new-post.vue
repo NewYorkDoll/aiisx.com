@@ -1,14 +1,18 @@
 <script setup lang="ts">
 import AdminPostCreate from "@/components/admin/post/creat.vue";
 import { useMessage } from "naive-ui";
-import { Post } from "~~/lib/api";
+import { CreatePostInput, Post } from "~~/lib/api";
 definePageMeta({
   layout: false,
 });
 const message = useMessage();
 
 const router = useRouter();
-function createPost(val: Post) {
+const labels = await useAsyncGql("getLabels");
+
+const createPost = (val: CreatePostInput, labelIDs: string[]) => {
+  console.log(val);
+  val.labelIDs = labelIDs;
   useAsyncGql("createPost", { input: val }).then((result) => {
     if (!result.error.value) {
       message.success("Post created successfully");
@@ -17,7 +21,7 @@ function createPost(val: Post) {
       message.error(result.error.value.gqlErrors[0].message);
     }
   });
-}
+};
 </script>
 
 <template>

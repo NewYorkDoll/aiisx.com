@@ -20,12 +20,12 @@ func (r *githubRepositoryResolver) License(ctx context.Context, obj *ent.GithubR
 
 // Node is the resolver for the node field.
 func (r *queryResolver) Node(ctx context.Context, id int) (ent.Noder, error) {
-	panic(fmt.Errorf("not implemented: Node - node"))
+	return ent.FromContext(ctx).Noder(ctx, id)
 }
 
 // Nodes is the resolver for the nodes field.
 func (r *queryResolver) Nodes(ctx context.Context, ids []int) ([]ent.Noder, error) {
-	panic(fmt.Errorf("not implemented: Nodes - nodes"))
+	return ent.FromContext(ctx).Noders(ctx, ids)
 }
 
 // Githubevents is the resolver for the githubevents field.

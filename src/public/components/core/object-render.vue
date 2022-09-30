@@ -2,41 +2,40 @@
 import { h } from "vue";
 import PostObject from "@/components/post/object.vue";
 import LabelObject from "@/components/label/object.vue";
+import { GetPostsQuery } from "~~/.nuxt/gql-sdk";
+type Label = NonNullable<
+  NonNullable<NonNullable<GetPostsQuery["posts"]["edges"]>[number]>["node"]
+>["labels"];
+
+type Post = GetPostsQuery["posts"];
 const props = defineProps<{
-  value: Record<string, any> | null;
+  value: Label | Post;
   showEmpty?: boolean;
   divider?: boolean;
+  type?: string;
 }>();
+
 const objects = computed(() => {
   if (!props.value) {
     return [];
   }
-  const results = typeMapper(props.value);
+  const results = typeMapper(props.value.edges);
   if (!Array.isArray(results)) {
     return [results];
   }
   return results;
 });
-const typeMapper = (o: Record<string, any>): any => {
-  if (Array.isArray(o)) {
-    return o.map(typeMapper);
-  }
-  if (!o.__typename) {
-    return [];
-  }
-  if (o.__typename.endsWith("Connection")) {
-    return o.edges.map(typeMapper);
-  }
-  if (o.__typename.endsWith("Edge")) {
-    return typeMapper(o.node);
-  }
-  switch (o.__typename) {
-    case "Post":
-      return { component: h("PostObject", { value: o }), object: o };
-    case "Label":
-      return { component: h("LabelObject", { value: o }), object: o };
-    default:
-      return [];
+const typeMapper = (o: any): any => {
+  if (props.type === "post") {
+    return o.map((item: any) => ({
+      component: h(PostObject as any, { value: item.node }),
+      object: item.node,
+    }));
+  } else {
+    return o.map((item: any) => ({
+      component: h(LabelObject as Label, { value: item.node }),
+      object: item.node,
+    }));
   }
 };
 </script>
@@ -45,6 +44,7 @@ const typeMapper = (o: Record<string, any>): any => {
   <n-empty
     v-if="showEmpty && objects.length < 1"
     description="No items found matching filters"
+    class="!flex"
   />
   <TransitionGroup v-else-if="objects.length > 0" appear name="fade">
     <div
@@ -56,6 +56,7 @@ const typeMapper = (o: Record<string, any>): any => {
       <n-divider v-if="divider && i != objects.length - 1" />
     </div>
   </TransitionGroup>
+  <n-empty v-else description="not found" class="!flex" />
 </template>
 
 <style scoped>

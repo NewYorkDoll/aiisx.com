@@ -6,7 +6,15 @@ mutation createLabel($input: CreateLabelInput!) {
 }
 
 mutation createPost($input: CreatePostInput!) {
-    createPost(input: $input) {
-        id
-    }
+  createPost(input: $input) {
+    id
+  }
+}
+mutation deletePost($id: ID!) {
+  deletePost(id: $id)
+}
+mutation updatePost($id: ID!, $input: UpdatePostInput!) {
+  updatePost(id: $id, input: $input) {
+    id
+  }
 }

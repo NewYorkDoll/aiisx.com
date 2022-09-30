@@ -66,7 +66,8 @@ function makeSuggestions(val: string | undefined) {
   const newSuggestions = [];
   for (const option of options.value) {
     if (selected.value.includes((option as any).data[props.field])) continue;
-    if (suggest.value!.match(new RegExp(`(^|\\W)${option.data.name}(\\W|$)`, "ig"))) {
+    const reg = new RegExp(`(^|\\W)${option.data.name}(\\W|$)`, "ig");
+    if (suggest.value!.match(reg)) {
       newSuggestions.push(option);
     }
   }
