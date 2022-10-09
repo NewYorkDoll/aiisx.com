@@ -49,6 +49,7 @@ require (
 	entgo.io/contrib v0.3.2
 	github.com/alecthomas/chroma v0.10.0
 	github.com/apex/log v1.9.0
+	github.com/gin-contrib/cors v1.4.0
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/gin-gonic/gin v1.8.1
 	github.com/go-playground/locales v0.14.0 // indirect
@@ -60,6 +61,7 @@ require (
 	github.com/google/go-github/v47 v47.1.0
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/gorilla/sessions v1.2.1
+	github.com/gwatts/gin-adapter v1.0.0
 	github.com/joho/godotenv v1.4.0
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect

@@ -16,3 +16,5 @@ node_modules
 dist
 .eslintrc-auto-import.json
 *.d.ts
+nohup.out
+main

@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	"aiisx.com/src/database"
 	"aiisx.com/src/database/graphql/graph/generated"
 	"aiisx.com/src/database/graphql/graph/model"
 	"aiisx.com/src/ent"
@@ -72,8 +73,9 @@ func (r *queryResolver) Posts(ctx context.Context, after *ent.Cursor, first *int
 		if post.ContentHTML == "" {
 			return conn, nil
 		}
-	}
 
+		go database.PostViewCounter(ctx, post)
+	}
 	return conn, err
 }
 

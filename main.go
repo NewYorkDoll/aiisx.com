@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httputil"
 	"strconv"
+	"time"
 
 	"aiisx.com/src/auth"
 	"aiisx.com/src/config"
@@ -18,8 +20,11 @@ import (
 	"aiisx.com/src/wakapi"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/apex/log"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/securecookie"
+	"github.com/gorilla/sessions"
+	adapter "github.com/gwatts/gin-adapter"
 	"github.com/joho/godotenv"
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
@@ -41,7 +46,15 @@ func playgroundHandler() gin.HandlerFunc {
 		h.ServeHTTP(c.Writer, c.Request)
 	}
 }
-
+func GetSessionUser(r *http.Request, session *sessions.Session) *ent.User {
+	s, ok := session.Values["gothUser"]
+	if !ok {
+		return nil
+	}
+	u := &ent.User{}
+	json.Unmarshal([]byte(s.(string)), u)
+	return u
+}
 func main() {
 	// 初始化环境变量
 	err := godotenv.Load()
@@ -53,6 +66,7 @@ func main() {
 	logger = log.WithFields(log.Fields{
 		"filename": "main.go",
 	})
+
 	/// 链接数据库
 	db = database.Open(ctx, logger, config.Database)
 	defer db.Close()
@@ -68,7 +82,14 @@ func main() {
 	// 模式设置
 	gin.SetMode(config.GIN_MODE)
 	r = gin.New()
-	r.Use(auth.AddToContext())
+
+	nextHandler, wrapper := adapter.New()
+	ns := database.UseContextIP(nextHandler)
+	newAuthMiddleware := auth.NewAuthMiddleware(nextHandler)
+	r.Use(cors.Default())
+	r.Use(wrapper(ns))
+	r.Use(RequestInfo)
+	r.Use(wrapper(newAuthMiddleware))
 	goth.UseProviders(
 		github.New(
 			config.Github.ClientID,
@@ -76,20 +97,26 @@ func main() {
 			config.HTTP.BaseURL+"/-/auth/providers/github/callback",
 		),
 	)
+
 	r.GET("/-/auth/providers/github/callback", func(ctx *gin.Context) {
 		ctx.Header("Cache-Control", "no-store")
 		provider := "github"
 		ctx.Request = contextWithProviderName(ctx, provider)
 		if gothUser, err := gothic.CompleteUserAuth(ctx.Writer, ctx.Request); err == nil {
 			id, err := auth.Auth.Set(ctx, &gothUser)
+
 			if err != nil {
 				logger.Error(err.Error())
 				return
 			}
 			gothic.StoreInSession("_auth", fmt.Sprintf("%v", id), ctx.Request, ctx.Writer)
+			ctx.Redirect(http.StatusMovedPermanently, "/admin")
+		} else {
+			ctx.Redirect(http.StatusMovedPermanently, "/")
+
 		}
-		ctx.Redirect(http.StatusMovedPermanently, "/admin")
 	})
+
 	gh.NewChient(ctx, config.GITHUB_ACCESS_TOKEN)
 	// graphql服务
 	srv := graphql.New(db)
@@ -170,6 +197,7 @@ func ReverseProxy() gin.HandlerFunc {
 	target := "localhost:3000"
 
 	return func(c *gin.Context) {
+
 		director := func(req *http.Request) {
 			req.URL.Scheme = "http"
 			req.URL.Host = target
@@ -182,4 +210,11 @@ func ReverseProxy() gin.HandlerFunc {
 
 func contextWithProviderName(c *gin.Context, provider string) *http.Request {
 	return c.Request.WithContext(context.WithValue(c.Request.Context(), "provider", provider))
+}
+
+func RequestInfo(ctx *gin.Context) {
+	now := time.Now()
+	timeInfo := fmt.Sprintf("%v-%v-%v %v-%v-%v", now.Year(), int(now.Month()), now.Day(),
+		now.Hour(), now.Minute(), now.Second())
+	fmt.Printf("[%v] %v - %v\n", timeInfo, ctx.Request.Method, ctx.FullPath())
 }

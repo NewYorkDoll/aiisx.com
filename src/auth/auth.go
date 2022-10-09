@@ -2,6 +2,8 @@ package auth
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -11,7 +13,6 @@ import (
 	"aiisx.com/src/database"
 	"aiisx.com/src/ent"
 	"github.com/apex/log"
-	"github.com/gin-gonic/gin"
 	"github.com/gorilla/sessions"
 	"github.com/markbates/goth/gothic"
 )
@@ -72,30 +73,85 @@ func NewAuthHandler[Ident ent.User, ID comparable](auth database.AuthService[Ide
 	return h
 }
 
-func (h *AuthHandler[Ident, ID]) AddToContext() gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		u := User.Load()
-		if u != nil {
-			ctx.Next()
-			return
-		}
-		r := ctx.Request.Context()
-		id := h.getIDFromSession(ctx.Request)
-		if id == nil {
-			ctx.Next()
+func (h *AuthHandler[Ident, ID]) AddToContext(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, ok := r.Context().Value(contextAuth).(*Ident)
+		if ok {
+			next.ServeHTTP(w, r)
 			return
 		}
 
-		ident, err := h.Auth.Get(r, *id)
-		if err != nil {
-			log.FromContext(r).WithError(err).WithField("user_id", *id).Warn("failed to get ident from session (but id set)")
-			ctx.Next()
+		id := h.getIDFromSession(r)
+		fmt.Println("id start")
+		fmt.Println(id)
+		fmt.Println("id end")
+		if id == nil {
+			next.ServeHTTP(w, r)
 			return
 		}
-		User.Store(ident)
-		ctx.Next()
-	}
+
+		ident, err := h.Auth.Get(r.Context(), *id)
+		if err != nil {
+			log.FromContext(r.Context()).WithError(err).WithField("user_id", *id).Warn("failed to get ident from session (but id set)")
+			next.ServeHTTP(w, r)
+			return
+		}
+		fmt.Println("ident start")
+		fmt.Println(ident)
+		fmt.Println("ident end")
+		ctx := context.WithValue(r.Context(), contextAuth, ident)
+		ctx = context.WithValue(ctx, contextAuthID, *id)
+
+		roles, err := h.Auth.Roles(r.Context(), *id)
+		if err != nil {
+			log.FromContext(r.Context()).WithError(err).WithField("user_id", *id).Warn("failed to get roles from session (but id set)")
+		} else {
+			ctx = context.WithValue(ctx, contextAuthRoles, roles)
+		}
+
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }
+
+// func (h *AuthHandler[Ident, ID]) AddToContext() gin.HandlerFunc {
+// 	return func(ctx *gin.Context) {
+// 		u, ok := ctx.Get("request_user")
+// 		fmt.Println("uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu")
+
+// 		fmt.Println(ok)
+// 		fmt.Println(u)
+// 		fmt.Println("nnnnnnnnnnnnnnnnnnnnnnnnnnnnnn")
+
+// 		if ok {
+// 			ctx.Next()
+// 			return
+// 		}
+// 		// u := User.Load()
+// 		if u != nil {
+// 			ctx.Next()
+// 			return
+// 		}
+// 		r := ctx.Request.Context()
+// 		id := h.getIDFromSession(ctx.Request)
+// 		if id == nil {
+// 			ctx.Next()
+// 			return
+// 		}
+
+// 		ident, err := h.Auth.Get(r, *id)
+// 		if err != nil {
+// 			log.FromContext(r).WithError(err).WithField("user_id", *id).Warn("failed to get ident from session (but id set)")
+// 			ctx.Next()
+// 			return
+// 		}
+// 		// User.Store(ident)
+// 		fmt.Println("-------------------------------------")
+// 		fmt.Println(ident)
+// 		fmt.Println("+++++++++++++++++++++++++++++++++++++")
+// 		ctx.Set("request_user", ident)
+// 		ctx.Next()
+// 	}
+// }
 
 func (h *AuthHandler[Ident, ID]) Logout() {
 	User.Store(nil)
@@ -143,9 +199,45 @@ func (h *AuthHandler[Ident, ID]) convertID(in string) (ID, error) {
 	return v.(ID), nil
 }
 
-func IdentFromContext[Ident any](ctx context.Context) (auth *Ident) {
-	auth, _ = ctx.Value(contextAuth).(*Ident)
-	return auth
+type authCtxKey struct{}
+
+func (h *AuthHandler[Ident, ID]) NewAuthMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println("go to NewAuthMiddleware")
+		_, ok := r.Context().Value(contextAuth).(*Ident)
+		if ok {
+			next.ServeHTTP(w, r)
+			return
+		}
+		id := h.getIDFromSession(r)
+		fmt.Println("获取的id")
+		fmt.Println(id)
+		if id == nil {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		ident, err := h.Auth.Get(r.Context(), *id)
+		fmt.Println("获取的ident")
+		fmt.Println(ident)
+		if err != nil {
+			log.FromContext(r.Context()).WithError(err).WithField("user_id", *id).Warn("failed to get ident from session (but id set)")
+			next.ServeHTTP(w, r)
+			return
+		}
+		ctx := context.WithValue(r.Context(), authCtxKey{}, ident)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func FromContext(ctx context.Context) *ent.User {
+	val := ctx.Value(authCtxKey{})
+	fmt.Println("获取的用户")
+	fmt.Println(val)
+	if val == nil {
+		return nil
+	}
+	return val.(*ent.User)
 }
 
 func (h *AuthHandler[Ident, ID]) RolesFromContext(ctx context.Context) (roles AuthRoles) {
@@ -171,4 +263,14 @@ func (r AuthRoles) Has(role string) bool {
 	}
 
 	return false
+}
+
+func GetSessionUser(r *http.Request, session *sessions.Session) *ent.User {
+	s, ok := session.Values["gothUser"]
+	if !ok {
+		return nil
+	}
+	u := &ent.User{}
+	json.Unmarshal([]byte(s.(string)), u)
+	return u
 }

@@ -12,7 +12,7 @@ import (
 
 // Self is the resolver for the self field.
 func (r *queryResolver) Self(ctx context.Context) (*ent.User, error) {
-	user := auth.User.Load()
+	user := auth.FromContext(ctx)
 	if user == nil {
 		return nil, nil
 	}

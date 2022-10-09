@@ -6,7 +6,7 @@ export default defineNuxtPlugin((nuxtApp) => {
     const { collect } = setup(nuxtApp.vueApp)
     const originalRenderMeta = nuxtApp.ssrContext?.renderMeta
     nuxtApp.ssrContext = nuxtApp.ssrContext
-    nuxtApp.ssrContext.renderMeta = () => {
+    nuxtApp.ssrContext!.renderMeta = () => {
       if (!originalRenderMeta) {
         return {
           headTags: collect()
