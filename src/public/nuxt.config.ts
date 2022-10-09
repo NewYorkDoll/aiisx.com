@@ -26,7 +26,7 @@ export default defineNuxtConfig({
   ],
   runtimeConfig: {
     public: {
-      GQL_HOST: "http://localhost:8080/query", // overwritten by process.env.GQL_HOST
+      GQL_HOST: "https://aiisx.com/query", // overwritten by process.env.GQL_HOST
       gql: {
         watch: true,
       },

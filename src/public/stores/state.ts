@@ -34,8 +34,12 @@ export const useBaseState = defineStore("state", {
       this.history.push(item);
     },
     async getBaseData() {
-      const { data } = await useAsyncGql("base");
-      this.base = data.value;
+      const _gothic_session = useCookie("_gothic_session");
+
+      const headers = { cookie: `_gothic_session=${_gothic_session.value}` };
+
+      const data = await GqlBase({}, headers);
+      this.base = data;
     },
   },
 });
