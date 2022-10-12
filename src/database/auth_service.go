@@ -2,7 +2,6 @@ package database
 
 import (
 	"context"
-	"errors"
 	"strconv"
 
 	"aiisx.com/src/ent"
@@ -41,9 +40,9 @@ func (s *authService) Set(ctx context.Context, guser *goth.User) (id int, err er
 		return 0, err
 	}
 
-	if uid != s.admin {
-		return 0, errors.New("access denied")
-	}
+	// if uid != s.admin {
+	// 	return 0, errors.New("access denied")
+	// }
 
 	q := s.db.User.Create().
 		SetUserID(uid).
