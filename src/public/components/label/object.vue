@@ -13,7 +13,6 @@ const props = withDefaults(
   }
 );
 const label = ref(props.value);
-console.log(label);
 </script>
 
 <template>

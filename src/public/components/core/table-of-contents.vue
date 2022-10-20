@@ -5,9 +5,6 @@ const props = defineProps<{
   element: Node;
 }>();
 const links = computed(() => createTOC(props.element, NAnchorLink));
-onMounted(() => {
-  console.log(links);
-});
 </script>
 <template>
   <div v-show="links.length" v-bind="$attrs">

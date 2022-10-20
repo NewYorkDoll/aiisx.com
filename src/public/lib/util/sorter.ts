@@ -1,4 +1,4 @@
-import type { ComputedRef, Ref } from "vue";
+import type { Ref } from "vue";
 
 const desc = "desc";
 const asc = "asc";

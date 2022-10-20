@@ -11,7 +11,6 @@ const router = useRouter();
 const labels = await useAsyncGql("getLabels");
 
 const createPost = (val: CreatePostInput, labelIDs: string[]) => {
-  console.log(val);
   val.labelIDs = labelIDs;
   useAsyncGql("createPost", { input: val }).then((result) => {
     if (!result.error.value) {

@@ -46,16 +46,20 @@ const typeMapper = (o: any): any => {
     description="No items found matching filters"
     class="!flex"
   />
-  <TransitionGroup v-else-if="objects.length > 0" appear name="fade">
-    <div
-      v-for="(object, i) in objects"
-      :key="object.object.id"
-      :style="{ '--i': i, '--total': objects.length }"
-    >
-      <component :is="object.component" v-bind="$attrs" />
-      <n-divider v-if="divider && i != objects.length - 1" />
-    </div>
-  </TransitionGroup>
+  <div v-else-if="objects.length > 0">
+    <TransitionGroup appear name="fade">
+      <div
+        v-for="(object, i) in objects"
+        :key="object.object.id"
+        :style="{ '--i': i, '--total': objects.length }"
+      >
+        <!-- {{ object.component }} -->
+        <component :is="object.component" v-bind="$attrs" />
+        <n-divider v-if="divider && i != objects.length - 1" />
+      </div>
+    </TransitionGroup>
+  </div>
+
   <n-empty v-else description="not found" class="!flex" />
 </template>
 

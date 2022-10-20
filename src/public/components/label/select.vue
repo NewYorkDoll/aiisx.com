@@ -6,7 +6,7 @@ import { watchDebounced } from "@vueuse/core";
 const props = withDefaults(
   defineProps<{
     modelValue: string | string[] | number | number[];
-    field: string;
+    field?: string;
     where?: LabelWhereInput | null;
     suggest?: string;
   }>(),
