@@ -8,6 +8,14 @@ export default defineNuxtConfig({
   typescript: {
     strict: true,
   },
+  app: {
+    head: {
+      title: "Website of 绎紫洛英",
+    },
+  },
+  meta: {
+    link: [{ rel: "icon", type: "image/x-icon", href: "/favicon.png" }],
+  },
   buildModules: ["@nuxtjs/tailwindcss"],
   modules: [
     "@unocss/nuxt",
