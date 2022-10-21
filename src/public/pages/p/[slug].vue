@@ -6,7 +6,7 @@ definePageMeta({
 });
 const route = useRoute();
 const slug = computed(() => route.params.slug as string);
-
+const comments = ref<HTMLElement | null>(null);
 const state = useBaseState();
 const { data, error, pending } = await useAsyncGql("getPostContent", {
   slug: slug.value,
@@ -24,6 +24,19 @@ useHead({
   ],
 });
 const postRef = ref<Node | null>(null);
+
+onMounted(() => {
+  const scriptTag = document.createElement("SCRIPT");
+  scriptTag.setAttribute("src", "https://utteranc.es/client.js");
+  scriptTag.setAttribute("repo", "NewYorkDoll/aiisx.com");
+  scriptTag.setAttribute("issue-term", "pathname");
+  scriptTag.setAttribute("label", "Comment");
+  scriptTag.setAttribute("theme", "github-dark");
+  scriptTag.setAttribute("crossorigin", "anonymous");
+  scriptTag.setAttribute("async", "async");
+
+  comments.value!.append(scriptTag);
+});
 </script>
 
 <template>
@@ -76,6 +89,7 @@ const postRef = ref<Node | null>(null);
           class="lg:mb-[100px]"
           v-html="post!.contentHTML"
         />
+        <div ref="comments"></div>
       </div>
     </div>
 
