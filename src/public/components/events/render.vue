@@ -5,6 +5,7 @@ import EventItemPush from "./item/push.vue";
 import EventItemCreate from "./item/create.vue";
 import EventItemFork from "./item/fork.vue";
 import EventItemIssues from "./item/issues.vue";
+import EventIssueComment from "./item/issue-comment.vue";
 import EventItemWatch from "./item/watch.vue";
 import { _AsyncData } from "nuxt/dist/app/composables/asyncData";
 import { GithubEventNode } from "@/lib/api/api";
@@ -15,7 +16,8 @@ const eventMap: { [name: string]: any } = {
   PushEvent: EventItemPush,
   ForkEvent: EventItemFork,
   IssuesEvent: EventItemIssues,
-  WatchEvent: EventItemWatch
+  IssueCommentEvent: EventIssueComment,
+  WatchEvent: EventItemWatch,
 };
 
 const fetched = ref<GithubEventNode[]>([]);

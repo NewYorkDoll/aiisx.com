@@ -29,7 +29,7 @@ export const menuOptions = [
 
 export const branchMenuOptions = [
   { to: { name: "index" }, name: "master" },
-  { to: { name: "util-gists" }, name: "feature/list-gists" },
+  // { to: { name: "util-gists" }, name: "feature/list-gists" },
 ];
 
 export const adminSidebarOptions = [
