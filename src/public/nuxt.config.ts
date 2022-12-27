@@ -11,13 +11,12 @@ export default defineNuxtConfig({
   app: {
     head: {
       title: "Website of 绎紫洛英",
+      link: [{ rel: "icon", type: "image/x-icon", href: "/favicon.png" }],
     },
+
   },
-  meta: {
-    link: [{ rel: "icon", type: "image/x-icon", href: "/favicon.png" }],
-  },
-  buildModules: ["@nuxtjs/tailwindcss"],
   modules: [
+    '@nuxtjs/tailwindcss',
     "@unocss/nuxt",
     "nuxt-graphql-client",
     [
@@ -80,6 +79,8 @@ export default defineNuxtConfig({
             "@juggle/resize-observer",
           ]
         : ["@juggle/resize-observer"],
+  },
+  webpack: {
     postcss: {
       postcssOptions: require("./postcss.config.js"),
     },
