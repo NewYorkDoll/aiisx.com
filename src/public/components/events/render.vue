@@ -9,7 +9,7 @@ import EventIssueComment from "./item/issue-comment.vue";
 import EventItemWatch from "./item/watch.vue";
 import { _AsyncData } from "nuxt/dist/app/composables/asyncData";
 import { GithubEventNode } from "@/lib/api/api";
-import { GetEventsQuery } from "~~/.nuxt/gql-sdk";
+import { GetEventsQuery, GqlGetEvents } from "~~/.nuxt/gql";
 
 const eventMap: { [name: string]: any } = {
   CreateEvent: EventItemCreate,
@@ -41,20 +41,22 @@ const nextCursor = ref<string>();
 const scrollContainer = ref<HTMLElement | null>(null);
 
 async function fetchEvents() {
+  
   if (!hasNextPage.value) return;
   cursor.value = nextCursor.value;
-  const events = await useAsyncGql("getEvents", {
+
+  const params = {
     count: 15,
     cursor: cursor.value,
-  });
-  if (events.data.value) {
-    pushData(events.data.value);
+  };
+  const events = await GqlGetEvents(params)
+  
+  if (events) {
+    pushData(events);
   }
 }
 
-onMounted(() => {
-  fetchEvents();
-});
+fetchEvents();
 </script>
 
 <template>
