@@ -10,6 +10,7 @@ import (
 
 	"aiisx.com/src/ent/migrate"
 
+	"aiisx.com/src/ent/files"
 	"aiisx.com/src/ent/githubevent"
 	"aiisx.com/src/ent/githubrepository"
 	"aiisx.com/src/ent/label"
@@ -26,6 +27,8 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
+	// Files is the client for interacting with the Files builders.
+	Files *FilesClient
 	// GithubEvent is the client for interacting with the GithubEvent builders.
 	GithubEvent *GithubEventClient
 	// GithubRepository is the client for interacting with the GithubRepository builders.
@@ -51,6 +54,7 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
+	c.Files = NewFilesClient(c.config)
 	c.GithubEvent = NewGithubEventClient(c.config)
 	c.GithubRepository = NewGithubRepositoryClient(c.config)
 	c.Label = NewLabelClient(c.config)
@@ -89,6 +93,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	return &Tx{
 		ctx:              ctx,
 		config:           cfg,
+		Files:            NewFilesClient(cfg),
 		GithubEvent:      NewGithubEventClient(cfg),
 		GithubRepository: NewGithubRepositoryClient(cfg),
 		Label:            NewLabelClient(cfg),
@@ -113,6 +118,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	return &Tx{
 		ctx:              ctx,
 		config:           cfg,
+		Files:            NewFilesClient(cfg),
 		GithubEvent:      NewGithubEventClient(cfg),
 		GithubRepository: NewGithubRepositoryClient(cfg),
 		Label:            NewLabelClient(cfg),
@@ -124,7 +130,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		GithubEvent.
+//		Files.
 //		Query().
 //		Count(ctx)
 func (c *Client) Debug() *Client {
@@ -146,11 +152,119 @@ func (c *Client) Close() error {
 // Use adds the mutation hooks to all the entity clients.
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
+	c.Files.Use(hooks...)
 	c.GithubEvent.Use(hooks...)
 	c.GithubRepository.Use(hooks...)
 	c.Label.Use(hooks...)
 	c.Post.Use(hooks...)
 	c.User.Use(hooks...)
+}
+
+// FilesClient is a client for the Files schema.
+type FilesClient struct {
+	config
+}
+
+// NewFilesClient returns a client for the Files from the given config.
+func NewFilesClient(c config) *FilesClient {
+	return &FilesClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `files.Hooks(f(g(h())))`.
+func (c *FilesClient) Use(hooks ...Hook) {
+	c.hooks.Files = append(c.hooks.Files, hooks...)
+}
+
+// Create returns a builder for creating a Files entity.
+func (c *FilesClient) Create() *FilesCreate {
+	mutation := newFilesMutation(c.config, OpCreate)
+	return &FilesCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Files entities.
+func (c *FilesClient) CreateBulk(builders ...*FilesCreate) *FilesCreateBulk {
+	return &FilesCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Files.
+func (c *FilesClient) Update() *FilesUpdate {
+	mutation := newFilesMutation(c.config, OpUpdate)
+	return &FilesUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *FilesClient) UpdateOne(f *Files) *FilesUpdateOne {
+	mutation := newFilesMutation(c.config, OpUpdateOne, withFiles(f))
+	return &FilesUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *FilesClient) UpdateOneID(id int) *FilesUpdateOne {
+	mutation := newFilesMutation(c.config, OpUpdateOne, withFilesID(id))
+	return &FilesUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Files.
+func (c *FilesClient) Delete() *FilesDelete {
+	mutation := newFilesMutation(c.config, OpDelete)
+	return &FilesDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *FilesClient) DeleteOne(f *Files) *FilesDeleteOne {
+	return c.DeleteOneID(f.ID)
+}
+
+// DeleteOne returns a builder for deleting the given entity by its id.
+func (c *FilesClient) DeleteOneID(id int) *FilesDeleteOne {
+	builder := c.Delete().Where(files.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &FilesDeleteOne{builder}
+}
+
+// Query returns a query builder for Files.
+func (c *FilesClient) Query() *FilesQuery {
+	return &FilesQuery{
+		config: c.config,
+	}
+}
+
+// Get returns a Files entity by its id.
+func (c *FilesClient) Get(ctx context.Context, id int) (*Files, error) {
+	return c.Query().Where(files.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *FilesClient) GetX(ctx context.Context, id int) *Files {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryPosts queries the posts edge of a Files.
+func (c *FilesClient) QueryPosts(f *Files) *PostQuery {
+	query := &PostQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := f.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(files.Table, files.FieldID, id),
+			sqlgraph.To(post.Table, post.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, false, files.PostsTable, files.PostsPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(f.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *FilesClient) Hooks() []Hook {
+	hooks := c.hooks.Files
+	return append(hooks[:len(hooks):len(hooks)], files.Hooks[:]...)
 }
 
 // GithubEventClient is a client for the GithubEvent schema.
@@ -568,6 +682,22 @@ func (c *PostClient) QueryLabels(po *Post) *LabelQuery {
 			sqlgraph.From(post.Table, post.FieldID, id),
 			sqlgraph.To(label.Table, label.FieldID),
 			sqlgraph.Edge(sqlgraph.M2M, true, post.LabelsTable, post.LabelsPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(po.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryFiles queries the files edge of a Post.
+func (c *PostClient) QueryFiles(po *Post) *FilesQuery {
+	query := &FilesQuery{config: c.config}
+	query.path = func(ctx context.Context) (fromV *sql.Selector, _ error) {
+		id := po.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(post.Table, post.FieldID, id),
+			sqlgraph.To(files.Table, files.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, true, post.FilesTable, post.FilesPrimaryKey...),
 		)
 		fromV = sqlgraph.Neighbors(po.driver.Dialect(), step)
 		return fromV, nil

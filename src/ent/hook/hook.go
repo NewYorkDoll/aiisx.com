@@ -9,6 +9,19 @@ import (
 	"aiisx.com/src/ent"
 )
 
+// The FilesFunc type is an adapter to allow the use of ordinary
+// function as Files mutator.
+type FilesFunc func(context.Context, *ent.FilesMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f FilesFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	mv, ok := m.(*ent.FilesMutation)
+	if !ok {
+		return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.FilesMutation", m)
+	}
+	return f(ctx, mv)
+}
+
 // The GithubEventFunc type is an adapter to allow the use of ordinary
 // function as GithubEvent mutator.
 type GithubEventFunc func(context.Context, *ent.GithubEventMutation) (ent.Value, error)

@@ -6,6 +6,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// Files is the predicate function for files builders.
+type Files func(*sql.Selector)
+
 // GithubEvent is the predicate function for githubevent builders.
 type GithubEvent func(*sql.Selector)
 

@@ -8,6 +8,21 @@ import (
 )
 
 var (
+	// FilesColumns holds the columns for the "files" table.
+	FilesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "create_time", Type: field.TypeTime},
+		{Name: "update_time", Type: field.TypeTime},
+		{Name: "name", Type: field.TypeString, Unique: true},
+		{Name: "url", Type: field.TypeString, Unique: true},
+		{Name: "bucket", Type: field.TypeString, Unique: true},
+	}
+	// FilesTable holds the schema information for the "files" table.
+	FilesTable = &schema.Table{
+		Name:       "files",
+		Columns:    FilesColumns,
+		PrimaryKey: []*schema.Column{FilesColumns[0]},
+	}
 	// GithubEventsColumns holds the columns for the "github_events" table.
 	GithubEventsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -127,6 +142,31 @@ var (
 		Columns:    UsersColumns,
 		PrimaryKey: []*schema.Column{UsersColumns[0]},
 	}
+	// FilesPostsColumns holds the columns for the "files_posts" table.
+	FilesPostsColumns = []*schema.Column{
+		{Name: "files_id", Type: field.TypeInt},
+		{Name: "post_id", Type: field.TypeInt},
+	}
+	// FilesPostsTable holds the schema information for the "files_posts" table.
+	FilesPostsTable = &schema.Table{
+		Name:       "files_posts",
+		Columns:    FilesPostsColumns,
+		PrimaryKey: []*schema.Column{FilesPostsColumns[0], FilesPostsColumns[1]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "files_posts_files_id",
+				Columns:    []*schema.Column{FilesPostsColumns[0]},
+				RefColumns: []*schema.Column{FilesColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "files_posts_post_id",
+				Columns:    []*schema.Column{FilesPostsColumns[1]},
+				RefColumns: []*schema.Column{PostsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+	}
 	// LabelPostsColumns holds the columns for the "label_posts" table.
 	LabelPostsColumns = []*schema.Column{
 		{Name: "label_id", Type: field.TypeInt},
@@ -154,11 +194,13 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		FilesTable,
 		GithubEventsTable,
 		GithubRepositoriesTable,
 		LabelsTable,
 		PostsTable,
 		UsersTable,
+		FilesPostsTable,
 		LabelPostsTable,
 	}
 )
@@ -166,6 +208,8 @@ var (
 func init() {
 	GithubRepositoriesTable.ForeignKeys[0].RefTable = LabelsTable
 	PostsTable.ForeignKeys[0].RefTable = UsersTable
+	FilesPostsTable.ForeignKeys[0].RefTable = FilesTable
+	FilesPostsTable.ForeignKeys[1].RefTable = PostsTable
 	LabelPostsTable.ForeignKeys[0].RefTable = LabelsTable
 	LabelPostsTable.ForeignKeys[1].RefTable = PostsTable
 }

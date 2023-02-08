@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 
+	"aiisx.com/src/ent/files"
 	"aiisx.com/src/ent/githubevent"
 	"aiisx.com/src/ent/githubrepository"
 	"aiisx.com/src/ent/label"
@@ -35,6 +36,7 @@ type OrderFunc func(*sql.Selector)
 // columnChecker returns a function indicates if the column exists in the given column.
 func columnChecker(table string) func(string) error {
 	checks := map[string]func(string) bool{
+		files.Table:            files.ValidColumn,
 		githubevent.Table:      githubevent.ValidColumn,
 		githubrepository.Table: githubrepository.ValidColumn,
 		label.Table:            label.ValidColumn,

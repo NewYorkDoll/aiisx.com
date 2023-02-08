@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	"aiisx.com/src/ent/files"
 	"aiisx.com/src/ent/githubevent"
 	"aiisx.com/src/ent/githubrepository"
 	"aiisx.com/src/ent/label"
@@ -243,6 +244,308 @@ func paginateLimit(first, last *int) int {
 		limit = *last + 1
 	}
 	return limit
+}
+
+// FilesEdge is the edge representation of Files.
+type FilesEdge struct {
+	Node   *Files `json:"node"`
+	Cursor Cursor `json:"cursor"`
+}
+
+// FilesConnection is the connection containing edges to Files.
+type FilesConnection struct {
+	Edges      []*FilesEdge `json:"edges"`
+	PageInfo   PageInfo     `json:"pageInfo"`
+	TotalCount int          `json:"totalCount"`
+}
+
+func (c *FilesConnection) build(nodes []*Files, pager *filesPager, after *Cursor, first *int, before *Cursor, last *int) {
+	c.PageInfo.HasNextPage = before != nil
+	c.PageInfo.HasPreviousPage = after != nil
+	if first != nil && *first+1 == len(nodes) {
+		c.PageInfo.HasNextPage = true
+		nodes = nodes[:len(nodes)-1]
+	} else if last != nil && *last+1 == len(nodes) {
+		c.PageInfo.HasPreviousPage = true
+		nodes = nodes[:len(nodes)-1]
+	}
+	var nodeAt func(int) *Files
+	if last != nil {
+		n := len(nodes) - 1
+		nodeAt = func(i int) *Files {
+			return nodes[n-i]
+		}
+	} else {
+		nodeAt = func(i int) *Files {
+			return nodes[i]
+		}
+	}
+	c.Edges = make([]*FilesEdge, len(nodes))
+	for i := range nodes {
+		node := nodeAt(i)
+		c.Edges[i] = &FilesEdge{
+			Node:   node,
+			Cursor: pager.toCursor(node),
+		}
+	}
+	if l := len(c.Edges); l > 0 {
+		c.PageInfo.StartCursor = &c.Edges[0].Cursor
+		c.PageInfo.EndCursor = &c.Edges[l-1].Cursor
+	}
+	if c.TotalCount == 0 {
+		c.TotalCount = len(nodes)
+	}
+}
+
+// FilesPaginateOption enables pagination customization.
+type FilesPaginateOption func(*filesPager) error
+
+// WithFilesOrder configures pagination ordering.
+func WithFilesOrder(order *FilesOrder) FilesPaginateOption {
+	if order == nil {
+		order = DefaultFilesOrder
+	}
+	o := *order
+	return func(pager *filesPager) error {
+		if err := o.Direction.Validate(); err != nil {
+			return err
+		}
+		if o.Field == nil {
+			o.Field = DefaultFilesOrder.Field
+		}
+		pager.order = &o
+		return nil
+	}
+}
+
+// WithFilesFilter configures pagination filter.
+func WithFilesFilter(filter func(*FilesQuery) (*FilesQuery, error)) FilesPaginateOption {
+	return func(pager *filesPager) error {
+		if filter == nil {
+			return errors.New("FilesQuery filter cannot be nil")
+		}
+		pager.filter = filter
+		return nil
+	}
+}
+
+type filesPager struct {
+	order  *FilesOrder
+	filter func(*FilesQuery) (*FilesQuery, error)
+}
+
+func newFilesPager(opts []FilesPaginateOption) (*filesPager, error) {
+	pager := &filesPager{}
+	for _, opt := range opts {
+		if err := opt(pager); err != nil {
+			return nil, err
+		}
+	}
+	if pager.order == nil {
+		pager.order = DefaultFilesOrder
+	}
+	return pager, nil
+}
+
+func (p *filesPager) applyFilter(query *FilesQuery) (*FilesQuery, error) {
+	if p.filter != nil {
+		return p.filter(query)
+	}
+	return query, nil
+}
+
+func (p *filesPager) toCursor(f *Files) Cursor {
+	return p.order.Field.toCursor(f)
+}
+
+func (p *filesPager) applyCursors(query *FilesQuery, after, before *Cursor) *FilesQuery {
+	for _, predicate := range cursorsToPredicates(
+		p.order.Direction, after, before,
+		p.order.Field.field, DefaultFilesOrder.Field.field,
+	) {
+		query = query.Where(predicate)
+	}
+	return query
+}
+
+func (p *filesPager) applyOrder(query *FilesQuery, reverse bool) *FilesQuery {
+	direction := p.order.Direction
+	if reverse {
+		direction = direction.reverse()
+	}
+	query = query.Order(direction.orderFunc(p.order.Field.field))
+	if p.order.Field != DefaultFilesOrder.Field {
+		query = query.Order(direction.orderFunc(DefaultFilesOrder.Field.field))
+	}
+	return query
+}
+
+func (p *filesPager) orderExpr(reverse bool) sql.Querier {
+	direction := p.order.Direction
+	if reverse {
+		direction = direction.reverse()
+	}
+	return sql.ExprFunc(func(b *sql.Builder) {
+		b.Ident(p.order.Field.field).Pad().WriteString(string(direction))
+		if p.order.Field != DefaultFilesOrder.Field {
+			b.Comma().Ident(DefaultFilesOrder.Field.field).Pad().WriteString(string(direction))
+		}
+	})
+}
+
+// Paginate executes the query and returns a relay based cursor connection to Files.
+func (f *FilesQuery) Paginate(
+	ctx context.Context, after *Cursor, first *int,
+	before *Cursor, last *int, opts ...FilesPaginateOption,
+) (*FilesConnection, error) {
+	if err := validateFirstLast(first, last); err != nil {
+		return nil, err
+	}
+	pager, err := newFilesPager(opts)
+	if err != nil {
+		return nil, err
+	}
+	if f, err = pager.applyFilter(f); err != nil {
+		return nil, err
+	}
+	conn := &FilesConnection{Edges: []*FilesEdge{}}
+	ignoredEdges := !hasCollectedField(ctx, edgesField)
+	if hasCollectedField(ctx, totalCountField) || hasCollectedField(ctx, pageInfoField) {
+		hasPagination := after != nil || first != nil || before != nil || last != nil
+		if hasPagination || ignoredEdges {
+			if conn.TotalCount, err = f.Count(ctx); err != nil {
+				return nil, err
+			}
+			conn.PageInfo.HasNextPage = first != nil && conn.TotalCount > 0
+			conn.PageInfo.HasPreviousPage = last != nil && conn.TotalCount > 0
+		}
+	}
+	if ignoredEdges || (first != nil && *first == 0) || (last != nil && *last == 0) {
+		return conn, nil
+	}
+
+	f = pager.applyCursors(f, after, before)
+	f = pager.applyOrder(f, last != nil)
+	if limit := paginateLimit(first, last); limit != 0 {
+		f.Limit(limit)
+	}
+	if field := collectedField(ctx, edgesField, nodeField); field != nil {
+		if err := f.collectField(ctx, graphql.GetOperationContext(ctx), *field, []string{edgesField, nodeField}); err != nil {
+			return nil, err
+		}
+	}
+
+	nodes, err := f.All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	conn.build(nodes, pager, after, first, before, last)
+	return conn, nil
+}
+
+var (
+	// FilesOrderFieldName orders Files by name.
+	FilesOrderFieldName = &FilesOrderField{
+		field: files.FieldName,
+		toCursor: func(f *Files) Cursor {
+			return Cursor{
+				ID:    f.ID,
+				Value: f.Name,
+			}
+		},
+	}
+	// FilesOrderFieldURL orders Files by url.
+	FilesOrderFieldURL = &FilesOrderField{
+		field: files.FieldURL,
+		toCursor: func(f *Files) Cursor {
+			return Cursor{
+				ID:    f.ID,
+				Value: f.URL,
+			}
+		},
+	}
+	// FilesOrderFieldBucket orders Files by bucket.
+	FilesOrderFieldBucket = &FilesOrderField{
+		field: files.FieldBucket,
+		toCursor: func(f *Files) Cursor {
+			return Cursor{
+				ID:    f.ID,
+				Value: f.Bucket,
+			}
+		},
+	}
+)
+
+// String implement fmt.Stringer interface.
+func (f FilesOrderField) String() string {
+	var str string
+	switch f.field {
+	case files.FieldName:
+		str = "NAME"
+	case files.FieldURL:
+		str = "URL"
+	case files.FieldBucket:
+		str = "BUCKET"
+	}
+	return str
+}
+
+// MarshalGQL implements graphql.Marshaler interface.
+func (f FilesOrderField) MarshalGQL(w io.Writer) {
+	io.WriteString(w, strconv.Quote(f.String()))
+}
+
+// UnmarshalGQL implements graphql.Unmarshaler interface.
+func (f *FilesOrderField) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("FilesOrderField %T must be a string", v)
+	}
+	switch str {
+	case "NAME":
+		*f = *FilesOrderFieldName
+	case "URL":
+		*f = *FilesOrderFieldURL
+	case "BUCKET":
+		*f = *FilesOrderFieldBucket
+	default:
+		return fmt.Errorf("%s is not a valid FilesOrderField", str)
+	}
+	return nil
+}
+
+// FilesOrderField defines the ordering field of Files.
+type FilesOrderField struct {
+	field    string
+	toCursor func(*Files) Cursor
+}
+
+// FilesOrder defines the ordering of Files.
+type FilesOrder struct {
+	Direction OrderDirection   `json:"direction"`
+	Field     *FilesOrderField `json:"field"`
+}
+
+// DefaultFilesOrder is the default ordering of Files.
+var DefaultFilesOrder = &FilesOrder{
+	Direction: OrderDirectionAsc,
+	Field: &FilesOrderField{
+		field: files.FieldID,
+		toCursor: func(f *Files) Cursor {
+			return Cursor{ID: f.ID}
+		},
+	},
+}
+
+// ToEdge converts Files into FilesEdge.
+func (f *Files) ToEdge(order *FilesOrder) *FilesEdge {
+	if order == nil {
+		order = DefaultFilesOrder
+	}
+	return &FilesEdge{
+		Node:   f,
+		Cursor: order.Field.toCursor(f),
+	}
 }
 
 // GithubEventEdge is the edge representation of GithubEvent.

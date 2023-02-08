@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	"aiisx.com/src/ent/files"
 	"aiisx.com/src/ent/label"
 	"aiisx.com/src/ent/post"
 	"aiisx.com/src/ent/predicate"
@@ -141,6 +142,21 @@ func (pu *PostUpdate) AddLabels(l ...*Label) *PostUpdate {
 	return pu.AddLabelIDs(ids...)
 }
 
+// AddFileIDs adds the "files" edge to the Files entity by IDs.
+func (pu *PostUpdate) AddFileIDs(ids ...int) *PostUpdate {
+	pu.mutation.AddFileIDs(ids...)
+	return pu
+}
+
+// AddFiles adds the "files" edges to the Files entity.
+func (pu *PostUpdate) AddFiles(f ...*Files) *PostUpdate {
+	ids := make([]int, len(f))
+	for i := range f {
+		ids[i] = f[i].ID
+	}
+	return pu.AddFileIDs(ids...)
+}
+
 // Mutation returns the PostMutation object of the builder.
 func (pu *PostUpdate) Mutation() *PostMutation {
 	return pu.mutation
@@ -171,6 +187,27 @@ func (pu *PostUpdate) RemoveLabels(l ...*Label) *PostUpdate {
 		ids[i] = l[i].ID
 	}
 	return pu.RemoveLabelIDs(ids...)
+}
+
+// ClearFiles clears all "files" edges to the Files entity.
+func (pu *PostUpdate) ClearFiles() *PostUpdate {
+	pu.mutation.ClearFiles()
+	return pu
+}
+
+// RemoveFileIDs removes the "files" edge to Files entities by IDs.
+func (pu *PostUpdate) RemoveFileIDs(ids ...int) *PostUpdate {
+	pu.mutation.RemoveFileIDs(ids...)
+	return pu
+}
+
+// RemoveFiles removes "files" edges to Files entities.
+func (pu *PostUpdate) RemoveFiles(f ...*Files) *PostUpdate {
+	ids := make([]int, len(f))
+	for i := range f {
+		ids[i] = f[i].ID
+	}
+	return pu.RemoveFileIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -463,6 +500,60 @@ func (pu *PostUpdate) sqlSave(ctx context.Context) (n int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if pu.mutation.FilesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   post.FilesTable,
+			Columns: post.FilesPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: files.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pu.mutation.RemovedFilesIDs(); len(nodes) > 0 && !pu.mutation.FilesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   post.FilesTable,
+			Columns: post.FilesPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: files.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := pu.mutation.FilesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   post.FilesTable,
+			Columns: post.FilesPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: files.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if n, err = sqlgraph.UpdateNodes(ctx, pu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{post.Label}
@@ -593,6 +684,21 @@ func (puo *PostUpdateOne) AddLabels(l ...*Label) *PostUpdateOne {
 	return puo.AddLabelIDs(ids...)
 }
 
+// AddFileIDs adds the "files" edge to the Files entity by IDs.
+func (puo *PostUpdateOne) AddFileIDs(ids ...int) *PostUpdateOne {
+	puo.mutation.AddFileIDs(ids...)
+	return puo
+}
+
+// AddFiles adds the "files" edges to the Files entity.
+func (puo *PostUpdateOne) AddFiles(f ...*Files) *PostUpdateOne {
+	ids := make([]int, len(f))
+	for i := range f {
+		ids[i] = f[i].ID
+	}
+	return puo.AddFileIDs(ids...)
+}
+
 // Mutation returns the PostMutation object of the builder.
 func (puo *PostUpdateOne) Mutation() *PostMutation {
 	return puo.mutation
@@ -623,6 +729,27 @@ func (puo *PostUpdateOne) RemoveLabels(l ...*Label) *PostUpdateOne {
 		ids[i] = l[i].ID
 	}
 	return puo.RemoveLabelIDs(ids...)
+}
+
+// ClearFiles clears all "files" edges to the Files entity.
+func (puo *PostUpdateOne) ClearFiles() *PostUpdateOne {
+	puo.mutation.ClearFiles()
+	return puo
+}
+
+// RemoveFileIDs removes the "files" edge to Files entities by IDs.
+func (puo *PostUpdateOne) RemoveFileIDs(ids ...int) *PostUpdateOne {
+	puo.mutation.RemoveFileIDs(ids...)
+	return puo
+}
+
+// RemoveFiles removes "files" edges to Files entities.
+func (puo *PostUpdateOne) RemoveFiles(f ...*Files) *PostUpdateOne {
+	ids := make([]int, len(f))
+	for i := range f {
+		ids[i] = f[i].ID
+	}
+	return puo.RemoveFileIDs(ids...)
 }
 
 // Select allows selecting one or more fields (columns) of the returned entity.
@@ -937,6 +1064,60 @@ func (puo *PostUpdateOne) sqlSave(ctx context.Context) (_node *Post, err error) 
 				IDSpec: &sqlgraph.FieldSpec{
 					Type:   field.TypeInt,
 					Column: label.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if puo.mutation.FilesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   post.FilesTable,
+			Columns: post.FilesPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: files.FieldID,
+				},
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := puo.mutation.RemovedFilesIDs(); len(nodes) > 0 && !puo.mutation.FilesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   post.FilesTable,
+			Columns: post.FilesPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: files.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := puo.mutation.FilesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   post.FilesTable,
+			Columns: post.FilesPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: files.FieldID,
 				},
 			},
 		}

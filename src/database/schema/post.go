@@ -90,6 +90,9 @@ func (Post) Edges() []ent.Edge {
 		edge.From("labels", Label.Type).Ref("posts").Annotations(
 			entgql.RelayConnection(),
 		),
+		edge.From("files", Files.Type).Ref("posts").Annotations(
+			entgql.RelayConnection(),
+		),
 	}
 }
 

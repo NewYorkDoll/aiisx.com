@@ -37,6 +37,8 @@ const (
 	EdgeAuthor = "author"
 	// EdgeLabels holds the string denoting the labels edge name in mutations.
 	EdgeLabels = "labels"
+	// EdgeFiles holds the string denoting the files edge name in mutations.
+	EdgeFiles = "files"
 	// Table holds the table name of the post in the database.
 	Table = "posts"
 	// AuthorTable is the table that holds the author relation/edge.
@@ -51,6 +53,11 @@ const (
 	// LabelsInverseTable is the table name for the Label entity.
 	// It exists in this package in order to avoid circular dependency with the "label" package.
 	LabelsInverseTable = "labels"
+	// FilesTable is the table that holds the files relation/edge. The primary key declared below.
+	FilesTable = "files_posts"
+	// FilesInverseTable is the table name for the Files entity.
+	// It exists in this package in order to avoid circular dependency with the "files" package.
+	FilesInverseTable = "files"
 )
 
 // Columns holds all SQL columns for post fields.
@@ -78,6 +85,9 @@ var (
 	// LabelsPrimaryKey and LabelsColumn2 are the table columns denoting the
 	// primary key for the labels relation (M2M).
 	LabelsPrimaryKey = []string{"label_id", "post_id"}
+	// FilesPrimaryKey and FilesColumn2 are the table columns denoting the
+	// primary key for the files relation (M2M).
+	FilesPrimaryKey = []string{"files_id", "post_id"}
 )
 
 // ValidColumn reports if the column name is valid (part of the table columns).

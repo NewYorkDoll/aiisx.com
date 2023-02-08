@@ -6,6 +6,82 @@ import (
 	"time"
 )
 
+// CreateFilesInput represents a mutation input for creating filesslice.
+type CreateFilesInput struct {
+	CreateTime *time.Time
+	UpdateTime *time.Time
+	Name       string
+	URL        string
+	Bucket     string
+	PostIDs    []int
+}
+
+// Mutate applies the CreateFilesInput on the FilesMutation builder.
+func (i *CreateFilesInput) Mutate(m *FilesMutation) {
+	if v := i.CreateTime; v != nil {
+		m.SetCreateTime(*v)
+	}
+	if v := i.UpdateTime; v != nil {
+		m.SetUpdateTime(*v)
+	}
+	m.SetName(i.Name)
+	m.SetURL(i.URL)
+	m.SetBucket(i.Bucket)
+	if v := i.PostIDs; len(v) > 0 {
+		m.AddPostIDs(v...)
+	}
+}
+
+// SetInput applies the change-set in the CreateFilesInput on the FilesCreate builder.
+func (c *FilesCreate) SetInput(i CreateFilesInput) *FilesCreate {
+	i.Mutate(c.Mutation())
+	return c
+}
+
+// UpdateFilesInput represents a mutation input for updating filesslice.
+type UpdateFilesInput struct {
+	UpdateTime    *time.Time
+	Name          *string
+	URL           *string
+	Bucket        *string
+	AddPostIDs    []int
+	RemovePostIDs []int
+}
+
+// Mutate applies the UpdateFilesInput on the FilesMutation builder.
+func (i *UpdateFilesInput) Mutate(m *FilesMutation) {
+	if v := i.UpdateTime; v != nil {
+		m.SetUpdateTime(*v)
+	}
+	if v := i.Name; v != nil {
+		m.SetName(*v)
+	}
+	if v := i.URL; v != nil {
+		m.SetURL(*v)
+	}
+	if v := i.Bucket; v != nil {
+		m.SetBucket(*v)
+	}
+	if v := i.AddPostIDs; len(v) > 0 {
+		m.AddPostIDs(v...)
+	}
+	if v := i.RemovePostIDs; len(v) > 0 {
+		m.RemovePostIDs(v...)
+	}
+}
+
+// SetInput applies the change-set in the UpdateFilesInput on the FilesUpdate builder.
+func (c *FilesUpdate) SetInput(i UpdateFilesInput) *FilesUpdate {
+	i.Mutate(c.Mutation())
+	return c
+}
+
+// SetInput applies the change-set in the UpdateFilesInput on the FilesUpdateOne builder.
+func (c *FilesUpdateOne) SetInput(i UpdateFilesInput) *FilesUpdateOne {
+	i.Mutate(c.Mutation())
+	return c
+}
+
 // CreateLabelInput represents a mutation input for creating labels.
 type CreateLabelInput struct {
 	CreateTime          *time.Time
@@ -92,6 +168,7 @@ type CreatePostInput struct {
 	PublishedAt *time.Time
 	Public      *bool
 	LabelIDs    []int
+	FileIDs     []int
 }
 
 // Mutate applies the CreatePostInput on the PostMutation builder.
@@ -114,6 +191,9 @@ func (i *CreatePostInput) Mutate(m *PostMutation) {
 	if v := i.LabelIDs; len(v) > 0 {
 		m.AddLabelIDs(v...)
 	}
+	if v := i.FileIDs; len(v) > 0 {
+		m.AddFileIDs(v...)
+	}
 }
 
 // SetInput applies the change-set in the CreatePostInput on the PostCreate builder.
@@ -132,6 +212,8 @@ type UpdatePostInput struct {
 	Public         *bool
 	AddLabelIDs    []int
 	RemoveLabelIDs []int
+	AddFileIDs     []int
+	RemoveFileIDs  []int
 }
 
 // Mutate applies the UpdatePostInput on the PostMutation builder.
@@ -159,6 +241,12 @@ func (i *UpdatePostInput) Mutate(m *PostMutation) {
 	}
 	if v := i.RemoveLabelIDs; len(v) > 0 {
 		m.RemoveLabelIDs(v...)
+	}
+	if v := i.AddFileIDs; len(v) > 0 {
+		m.AddFileIDs(v...)
+	}
+	if v := i.RemoveFileIDs; len(v) > 0 {
+		m.RemoveFileIDs(v...)
 	}
 }
 

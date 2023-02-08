@@ -3,6 +3,7 @@
 package ent
 
 import (
+	"aiisx.com/src/ent/files"
 	"aiisx.com/src/ent/githubevent"
 	"aiisx.com/src/ent/githubrepository"
 	"aiisx.com/src/ent/label"
@@ -18,8 +19,26 @@ import (
 
 // schemaGraph holds a representation of ent/schema at runtime.
 var schemaGraph = func() *sqlgraph.Schema {
-	graph := &sqlgraph.Schema{Nodes: make([]*sqlgraph.Node, 5)}
+	graph := &sqlgraph.Schema{Nodes: make([]*sqlgraph.Node, 6)}
 	graph.Nodes[0] = &sqlgraph.Node{
+		NodeSpec: sqlgraph.NodeSpec{
+			Table:   files.Table,
+			Columns: files.Columns,
+			ID: &sqlgraph.FieldSpec{
+				Type:   field.TypeInt,
+				Column: files.FieldID,
+			},
+		},
+		Type: "Files",
+		Fields: map[string]*sqlgraph.FieldSpec{
+			files.FieldCreateTime: {Type: field.TypeTime, Column: files.FieldCreateTime},
+			files.FieldUpdateTime: {Type: field.TypeTime, Column: files.FieldUpdateTime},
+			files.FieldName:       {Type: field.TypeString, Column: files.FieldName},
+			files.FieldURL:        {Type: field.TypeString, Column: files.FieldURL},
+			files.FieldBucket:     {Type: field.TypeString, Column: files.FieldBucket},
+		},
+	}
+	graph.Nodes[1] = &sqlgraph.Node{
 		NodeSpec: sqlgraph.NodeSpec{
 			Table:   githubevent.Table,
 			Columns: githubevent.Columns,
@@ -41,7 +60,7 @@ var schemaGraph = func() *sqlgraph.Schema {
 			githubevent.FieldPayload:   {Type: field.TypeJSON, Column: githubevent.FieldPayload},
 		},
 	}
-	graph.Nodes[1] = &sqlgraph.Node{
+	graph.Nodes[2] = &sqlgraph.Node{
 		NodeSpec: sqlgraph.NodeSpec{
 			Table:   githubrepository.Table,
 			Columns: githubrepository.Columns,
@@ -73,7 +92,7 @@ var schemaGraph = func() *sqlgraph.Schema {
 			githubrepository.FieldLicense:       {Type: field.TypeJSON, Column: githubrepository.FieldLicense},
 		},
 	}
-	graph.Nodes[2] = &sqlgraph.Node{
+	graph.Nodes[3] = &sqlgraph.Node{
 		NodeSpec: sqlgraph.NodeSpec{
 			Table:   label.Table,
 			Columns: label.Columns,
@@ -89,7 +108,7 @@ var schemaGraph = func() *sqlgraph.Schema {
 			label.FieldName:       {Type: field.TypeString, Column: label.FieldName},
 		},
 	}
-	graph.Nodes[3] = &sqlgraph.Node{
+	graph.Nodes[4] = &sqlgraph.Node{
 		NodeSpec: sqlgraph.NodeSpec{
 			Table:   post.Table,
 			Columns: post.Columns,
@@ -112,7 +131,7 @@ var schemaGraph = func() *sqlgraph.Schema {
 			post.FieldPublic:      {Type: field.TypeBool, Column: post.FieldPublic},
 		},
 	}
-	graph.Nodes[4] = &sqlgraph.Node{
+	graph.Nodes[5] = &sqlgraph.Node{
 		NodeSpec: sqlgraph.NodeSpec{
 			Table:   user.Table,
 			Columns: user.Columns,
@@ -135,6 +154,18 @@ var schemaGraph = func() *sqlgraph.Schema {
 			user.FieldBio:        {Type: field.TypeString, Column: user.FieldBio},
 		},
 	}
+	graph.MustAddE(
+		"posts",
+		&sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: false,
+			Table:   files.PostsTable,
+			Columns: files.PostsPrimaryKey,
+			Bidi:    false,
+		},
+		"Files",
+		"Post",
+	)
 	graph.MustAddE(
 		"posts",
 		&sqlgraph.EdgeSpec{
@@ -184,6 +215,18 @@ var schemaGraph = func() *sqlgraph.Schema {
 		"Label",
 	)
 	graph.MustAddE(
+		"files",
+		&sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   post.FilesTable,
+			Columns: post.FilesPrimaryKey,
+			Bidi:    false,
+		},
+		"Post",
+		"Files",
+	)
+	graph.MustAddE(
 		"posts",
 		&sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.O2M,
@@ -202,6 +245,85 @@ var schemaGraph = func() *sqlgraph.Schema {
 // All update, update-one and query builders implement this interface.
 type predicateAdder interface {
 	addPredicate(func(s *sql.Selector))
+}
+
+// addPredicate implements the predicateAdder interface.
+func (fq *FilesQuery) addPredicate(pred func(s *sql.Selector)) {
+	fq.predicates = append(fq.predicates, pred)
+}
+
+// Filter returns a Filter implementation to apply filters on the FilesQuery builder.
+func (fq *FilesQuery) Filter() *FilesFilter {
+	return &FilesFilter{config: fq.config, predicateAdder: fq}
+}
+
+// addPredicate implements the predicateAdder interface.
+func (m *FilesMutation) addPredicate(pred func(s *sql.Selector)) {
+	m.predicates = append(m.predicates, pred)
+}
+
+// Filter returns an entql.Where implementation to apply filters on the FilesMutation builder.
+func (m *FilesMutation) Filter() *FilesFilter {
+	return &FilesFilter{config: m.config, predicateAdder: m}
+}
+
+// FilesFilter provides a generic filtering capability at runtime for FilesQuery.
+type FilesFilter struct {
+	predicateAdder
+	config
+}
+
+// Where applies the entql predicate on the query filter.
+func (f *FilesFilter) Where(p entql.P) {
+	f.addPredicate(func(s *sql.Selector) {
+		if err := schemaGraph.EvalP(schemaGraph.Nodes[0].Type, p, s); err != nil {
+			s.AddError(err)
+		}
+	})
+}
+
+// WhereID applies the entql int predicate on the id field.
+func (f *FilesFilter) WhereID(p entql.IntP) {
+	f.Where(p.Field(files.FieldID))
+}
+
+// WhereCreateTime applies the entql time.Time predicate on the create_time field.
+func (f *FilesFilter) WhereCreateTime(p entql.TimeP) {
+	f.Where(p.Field(files.FieldCreateTime))
+}
+
+// WhereUpdateTime applies the entql time.Time predicate on the update_time field.
+func (f *FilesFilter) WhereUpdateTime(p entql.TimeP) {
+	f.Where(p.Field(files.FieldUpdateTime))
+}
+
+// WhereName applies the entql string predicate on the name field.
+func (f *FilesFilter) WhereName(p entql.StringP) {
+	f.Where(p.Field(files.FieldName))
+}
+
+// WhereURL applies the entql string predicate on the url field.
+func (f *FilesFilter) WhereURL(p entql.StringP) {
+	f.Where(p.Field(files.FieldURL))
+}
+
+// WhereBucket applies the entql string predicate on the bucket field.
+func (f *FilesFilter) WhereBucket(p entql.StringP) {
+	f.Where(p.Field(files.FieldBucket))
+}
+
+// WhereHasPosts applies a predicate to check if query has an edge posts.
+func (f *FilesFilter) WhereHasPosts() {
+	f.Where(entql.HasEdge("posts"))
+}
+
+// WhereHasPostsWith applies a predicate to check if query has an edge posts with a given conditions (other predicates).
+func (f *FilesFilter) WhereHasPostsWith(preds ...predicate.Post) {
+	f.Where(entql.HasEdgeWith("posts", sqlgraph.WrapFunc(func(s *sql.Selector) {
+		for _, p := range preds {
+			p(s)
+		}
+	})))
 }
 
 // addPredicate implements the predicateAdder interface.
@@ -233,7 +355,7 @@ type GithubEventFilter struct {
 // Where applies the entql predicate on the query filter.
 func (f *GithubEventFilter) Where(p entql.P) {
 	f.addPredicate(func(s *sql.Selector) {
-		if err := schemaGraph.EvalP(schemaGraph.Nodes[0].Type, p, s); err != nil {
+		if err := schemaGraph.EvalP(schemaGraph.Nodes[1].Type, p, s); err != nil {
 			s.AddError(err)
 		}
 	})
@@ -318,7 +440,7 @@ type GithubRepositoryFilter struct {
 // Where applies the entql predicate on the query filter.
 func (f *GithubRepositoryFilter) Where(p entql.P) {
 	f.addPredicate(func(s *sql.Selector) {
-		if err := schemaGraph.EvalP(schemaGraph.Nodes[1].Type, p, s); err != nil {
+		if err := schemaGraph.EvalP(schemaGraph.Nodes[2].Type, p, s); err != nil {
 			s.AddError(err)
 		}
 	})
@@ -453,7 +575,7 @@ type LabelFilter struct {
 // Where applies the entql predicate on the query filter.
 func (f *LabelFilter) Where(p entql.P) {
 	f.addPredicate(func(s *sql.Selector) {
-		if err := schemaGraph.EvalP(schemaGraph.Nodes[2].Type, p, s); err != nil {
+		if err := schemaGraph.EvalP(schemaGraph.Nodes[3].Type, p, s); err != nil {
 			s.AddError(err)
 		}
 	})
@@ -536,7 +658,7 @@ type PostFilter struct {
 // Where applies the entql predicate on the query filter.
 func (f *PostFilter) Where(p entql.P) {
 	f.addPredicate(func(s *sql.Selector) {
-		if err := schemaGraph.EvalP(schemaGraph.Nodes[3].Type, p, s); err != nil {
+		if err := schemaGraph.EvalP(schemaGraph.Nodes[4].Type, p, s); err != nil {
 			s.AddError(err)
 		}
 	})
@@ -625,6 +747,20 @@ func (f *PostFilter) WhereHasLabelsWith(preds ...predicate.Label) {
 	})))
 }
 
+// WhereHasFiles applies a predicate to check if query has an edge files.
+func (f *PostFilter) WhereHasFiles() {
+	f.Where(entql.HasEdge("files"))
+}
+
+// WhereHasFilesWith applies a predicate to check if query has an edge files with a given conditions (other predicates).
+func (f *PostFilter) WhereHasFilesWith(preds ...predicate.Files) {
+	f.Where(entql.HasEdgeWith("files", sqlgraph.WrapFunc(func(s *sql.Selector) {
+		for _, p := range preds {
+			p(s)
+		}
+	})))
+}
+
 // addPredicate implements the predicateAdder interface.
 func (uq *UserQuery) addPredicate(pred func(s *sql.Selector)) {
 	uq.predicates = append(uq.predicates, pred)
@@ -654,7 +790,7 @@ type UserFilter struct {
 // Where applies the entql predicate on the query filter.
 func (f *UserFilter) Where(p entql.P) {
 	f.addPredicate(func(s *sql.Selector) {
-		if err := schemaGraph.EvalP(schemaGraph.Nodes[4].Type, p, s); err != nil {
+		if err := schemaGraph.EvalP(schemaGraph.Nodes[5].Type, p, s); err != nil {
 			s.AddError(err)
 		}
 	})

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"math"
 
+	"aiisx.com/src/ent/files"
 	"aiisx.com/src/ent/label"
 	"aiisx.com/src/ent/post"
 	"aiisx.com/src/ent/predicate"
@@ -29,10 +30,12 @@ type PostQuery struct {
 	predicates      []predicate.Post
 	withAuthor      *UserQuery
 	withLabels      *LabelQuery
+	withFiles       *FilesQuery
 	withFKs         bool
 	modifiers       []func(*sql.Selector)
 	loadTotal       []func(context.Context, []*Post) error
 	withNamedLabels map[string]*LabelQuery
+	withNamedFiles  map[string]*FilesQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -106,6 +109,28 @@ func (pq *PostQuery) QueryLabels() *LabelQuery {
 			sqlgraph.From(post.Table, post.FieldID, selector),
 			sqlgraph.To(label.Table, label.FieldID),
 			sqlgraph.Edge(sqlgraph.M2M, true, post.LabelsTable, post.LabelsPrimaryKey...),
+		)
+		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryFiles chains the current query on the "files" edge.
+func (pq *PostQuery) QueryFiles() *FilesQuery {
+	query := &FilesQuery{config: pq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := pq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := pq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(post.Table, post.FieldID, selector),
+			sqlgraph.To(files.Table, files.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, true, post.FilesTable, post.FilesPrimaryKey...),
 		)
 		fromU = sqlgraph.SetNeighbors(pq.driver.Dialect(), step)
 		return fromU, nil
@@ -296,6 +321,7 @@ func (pq *PostQuery) Clone() *PostQuery {
 		predicates: append([]predicate.Post{}, pq.predicates...),
 		withAuthor: pq.withAuthor.Clone(),
 		withLabels: pq.withLabels.Clone(),
+		withFiles:  pq.withFiles.Clone(),
 		// clone intermediate query.
 		sql:    pq.sql.Clone(),
 		path:   pq.path,
@@ -322,6 +348,17 @@ func (pq *PostQuery) WithLabels(opts ...func(*LabelQuery)) *PostQuery {
 		opt(query)
 	}
 	pq.withLabels = query
+	return pq
+}
+
+// WithFiles tells the query-builder to eager-load the nodes that are connected to
+// the "files" edge. The optional arguments are used to configure the query builder of the edge.
+func (pq *PostQuery) WithFiles(opts ...func(*FilesQuery)) *PostQuery {
+	query := &FilesQuery{config: pq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	pq.withFiles = query
 	return pq
 }
 
@@ -400,9 +437,10 @@ func (pq *PostQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Post, e
 		nodes       = []*Post{}
 		withFKs     = pq.withFKs
 		_spec       = pq.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [3]bool{
 			pq.withAuthor != nil,
 			pq.withLabels != nil,
+			pq.withFiles != nil,
 		}
 	)
 	if pq.withAuthor != nil {
@@ -445,10 +483,24 @@ func (pq *PostQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Post, e
 			return nil, err
 		}
 	}
+	if query := pq.withFiles; query != nil {
+		if err := pq.loadFiles(ctx, query, nodes,
+			func(n *Post) { n.Edges.Files = []*Files{} },
+			func(n *Post, e *Files) { n.Edges.Files = append(n.Edges.Files, e) }); err != nil {
+			return nil, err
+		}
+	}
 	for name, query := range pq.withNamedLabels {
 		if err := pq.loadLabels(ctx, query, nodes,
 			func(n *Post) { n.appendNamedLabels(name) },
 			func(n *Post, e *Label) { n.appendNamedLabels(name, e) }); err != nil {
+			return nil, err
+		}
+	}
+	for name, query := range pq.withNamedFiles {
+		if err := pq.loadFiles(ctx, query, nodes,
+			func(n *Post) { n.appendNamedFiles(name) },
+			func(n *Post, e *Files) { n.appendNamedFiles(name, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -540,6 +592,64 @@ func (pq *PostQuery) loadLabels(ctx context.Context, query *LabelQuery, nodes []
 		nodes, ok := nids[n.ID]
 		if !ok {
 			return fmt.Errorf(`unexpected "labels" node returned %v`, n.ID)
+		}
+		for kn := range nodes {
+			assign(kn, n)
+		}
+	}
+	return nil
+}
+func (pq *PostQuery) loadFiles(ctx context.Context, query *FilesQuery, nodes []*Post, init func(*Post), assign func(*Post, *Files)) error {
+	edgeIDs := make([]driver.Value, len(nodes))
+	byID := make(map[int]*Post)
+	nids := make(map[int]map[*Post]struct{})
+	for i, node := range nodes {
+		edgeIDs[i] = node.ID
+		byID[node.ID] = node
+		if init != nil {
+			init(node)
+		}
+	}
+	query.Where(func(s *sql.Selector) {
+		joinT := sql.Table(post.FilesTable)
+		s.Join(joinT).On(s.C(files.FieldID), joinT.C(post.FilesPrimaryKey[0]))
+		s.Where(sql.InValues(joinT.C(post.FilesPrimaryKey[1]), edgeIDs...))
+		columns := s.SelectedColumns()
+		s.Select(joinT.C(post.FilesPrimaryKey[1]))
+		s.AppendSelect(columns...)
+		s.SetDistinct(false)
+	})
+	if err := query.prepareQuery(ctx); err != nil {
+		return err
+	}
+	neighbors, err := query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
+		assign := spec.Assign
+		values := spec.ScanValues
+		spec.ScanValues = func(columns []string) ([]any, error) {
+			values, err := values(columns[1:])
+			if err != nil {
+				return nil, err
+			}
+			return append([]any{new(sql.NullInt64)}, values...), nil
+		}
+		spec.Assign = func(columns []string, values []any) error {
+			outValue := int(values[0].(*sql.NullInt64).Int64)
+			inValue := int(values[1].(*sql.NullInt64).Int64)
+			if nids[inValue] == nil {
+				nids[inValue] = map[*Post]struct{}{byID[outValue]: struct{}{}}
+				return assign(columns[1:], values[1:])
+			}
+			nids[inValue][byID[outValue]] = struct{}{}
+			return nil
+		}
+	})
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected "files" node returned %v`, n.ID)
 		}
 		for kn := range nodes {
 			assign(kn, n)
@@ -659,6 +769,20 @@ func (pq *PostQuery) WithNamedLabels(name string, opts ...func(*LabelQuery)) *Po
 		pq.withNamedLabels = make(map[string]*LabelQuery)
 	}
 	pq.withNamedLabels[name] = query
+	return pq
+}
+
+// WithNamedFiles tells the query-builder to eager-load the nodes that are connected to the "files"
+// edge with the given name. The optional arguments are used to configure the query builder of the edge.
+func (pq *PostQuery) WithNamedFiles(name string, opts ...func(*FilesQuery)) *PostQuery {
+	query := &FilesQuery{config: pq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	if pq.withNamedFiles == nil {
+		pq.withNamedFiles = make(map[string]*FilesQuery)
+	}
+	pq.withNamedFiles[name] = query
 	return pq
 }
 

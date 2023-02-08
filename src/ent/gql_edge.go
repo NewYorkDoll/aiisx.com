@@ -8,6 +8,27 @@ import (
 	"github.com/99designs/gqlgen/graphql"
 )
 
+func (f *Files) Posts(
+	ctx context.Context, after *Cursor, first *int, before *Cursor, last *int, orderBy *PostOrder, where *PostWhereInput,
+) (*PostConnection, error) {
+	opts := []PostPaginateOption{
+		WithPostOrder(orderBy),
+		WithPostFilter(where.Filter),
+	}
+	alias := graphql.GetFieldContext(ctx).Field.Alias
+	totalCount, hasTotalCount := f.Edges.totalCount[0][alias]
+	if nodes, err := f.NamedPosts(alias); err == nil || hasTotalCount {
+		pager, err := newPostPager(opts)
+		if err != nil {
+			return nil, err
+		}
+		conn := &PostConnection{Edges: []*PostEdge{}, TotalCount: totalCount}
+		conn.build(nodes, pager, after, first, before, last)
+		return conn, nil
+	}
+	return f.QueryPosts().Paginate(ctx, after, first, before, last, opts...)
+}
+
 func (l *Label) Posts(
 	ctx context.Context, after *Cursor, first *int, before *Cursor, last *int, orderBy *PostOrder, where *PostWhereInput,
 ) (*PostConnection, error) {
@@ -77,6 +98,27 @@ func (po *Post) Labels(
 		return conn, nil
 	}
 	return po.QueryLabels().Paginate(ctx, after, first, before, last, opts...)
+}
+
+func (po *Post) Files(
+	ctx context.Context, after *Cursor, first *int, before *Cursor, last *int, orderBy *FilesOrder, where *FilesWhereInput,
+) (*FilesConnection, error) {
+	opts := []FilesPaginateOption{
+		WithFilesOrder(orderBy),
+		WithFilesFilter(where.Filter),
+	}
+	alias := graphql.GetFieldContext(ctx).Field.Alias
+	totalCount, hasTotalCount := po.Edges.totalCount[2][alias]
+	if nodes, err := po.NamedFiles(alias); err == nil || hasTotalCount {
+		pager, err := newFilesPager(opts)
+		if err != nil {
+			return nil, err
+		}
+		conn := &FilesConnection{Edges: []*FilesEdge{}, TotalCount: totalCount}
+		conn.build(nodes, pager, after, first, before, last)
+		return conn, nil
+	}
+	return po.QueryFiles().Paginate(ctx, after, first, before, last, opts...)
 }
 
 func (u *User) Posts(

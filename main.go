@@ -195,12 +195,12 @@ func main() {
 
 func ReverseProxy() gin.HandlerFunc {
 
-	target := "localhost:3000"
+	target := "aiisx.vercel.app"
 
 	return func(c *gin.Context) {
 
 		director := func(req *http.Request) {
-			req.URL.Scheme = "http"
+			req.URL.Scheme = "https"
 			req.URL.Host = target
 			req.Host = target
 		}

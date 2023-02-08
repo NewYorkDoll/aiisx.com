@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	"aiisx.com/src/ent/files"
 	"aiisx.com/src/ent/label"
 	"aiisx.com/src/ent/post"
 	"aiisx.com/src/ent/user"
@@ -148,6 +149,21 @@ func (pc *PostCreate) AddLabels(l ...*Label) *PostCreate {
 		ids[i] = l[i].ID
 	}
 	return pc.AddLabelIDs(ids...)
+}
+
+// AddFileIDs adds the "files" edge to the Files entity by IDs.
+func (pc *PostCreate) AddFileIDs(ids ...int) *PostCreate {
+	pc.mutation.AddFileIDs(ids...)
+	return pc
+}
+
+// AddFiles adds the "files" edges to the Files entity.
+func (pc *PostCreate) AddFiles(f ...*Files) *PostCreate {
+	ids := make([]int, len(f))
+	for i := range f {
+		ids[i] = f[i].ID
+	}
+	return pc.AddFileIDs(ids...)
 }
 
 // Mutation returns the PostMutation object of the builder.
@@ -465,6 +481,25 @@ func (pc *PostCreate) createSpec() (*Post, *sqlgraph.CreateSpec) {
 				IDSpec: &sqlgraph.FieldSpec{
 					Type:   field.TypeInt,
 					Column: label.FieldID,
+				},
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := pc.mutation.FilesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   post.FilesTable,
+			Columns: post.FilesPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: &sqlgraph.FieldSpec{
+					Type:   field.TypeInt,
+					Column: files.FieldID,
 				},
 			},
 		}

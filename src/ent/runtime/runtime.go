@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"aiisx.com/src/database/schema"
+	"aiisx.com/src/ent/files"
 	"aiisx.com/src/ent/githubevent"
 	"aiisx.com/src/ent/githubrepository"
 	"aiisx.com/src/ent/label"
@@ -21,6 +22,30 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	filesMixin := schema.Files{}.Mixin()
+	files.Policy = privacy.NewPolicies(schema.Files{})
+	files.Hooks[0] = func(next ent.Mutator) ent.Mutator {
+		return ent.MutateFunc(func(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+			if err := files.Policy.EvalMutation(ctx, m); err != nil {
+				return nil, err
+			}
+			return next.Mutate(ctx, m)
+		})
+	}
+	filesMixinFields0 := filesMixin[0].Fields()
+	_ = filesMixinFields0
+	filesFields := schema.Files{}.Fields()
+	_ = filesFields
+	// filesDescCreateTime is the schema descriptor for create_time field.
+	filesDescCreateTime := filesMixinFields0[0].Descriptor()
+	// files.DefaultCreateTime holds the default value on creation for the create_time field.
+	files.DefaultCreateTime = filesDescCreateTime.Default.(func() time.Time)
+	// filesDescUpdateTime is the schema descriptor for update_time field.
+	filesDescUpdateTime := filesMixinFields0[1].Descriptor()
+	// files.DefaultUpdateTime holds the default value on creation for the update_time field.
+	files.DefaultUpdateTime = filesDescUpdateTime.Default.(func() time.Time)
+	// files.UpdateDefaultUpdateTime holds the default value on update for the update_time field.
+	files.UpdateDefaultUpdateTime = filesDescUpdateTime.UpdateDefault.(func() time.Time)
 	githubevent.Policy = privacy.NewPolicies(schema.GithubEvent{})
 	githubevent.Hooks[0] = func(next ent.Mutator) ent.Mutator {
 		return ent.MutateFunc(func(ctx context.Context, m ent.Mutation) (ent.Value, error) {

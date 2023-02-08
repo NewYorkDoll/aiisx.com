@@ -49,13 +49,16 @@ type PostEdges struct {
 	Author *User `json:"author,omitempty"`
 	// Labels holds the value of the labels edge.
 	Labels []*Label `json:"labels,omitempty"`
+	// Files holds the value of the files edge.
+	Files []*Files `json:"files,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 	// totalCount holds the count of the edges above.
-	totalCount [2]map[string]int
+	totalCount [3]map[string]int
 
 	namedLabels map[string][]*Label
+	namedFiles  map[string][]*Files
 }
 
 // AuthorOrErr returns the Author value or an error if the edge
@@ -78,6 +81,15 @@ func (e PostEdges) LabelsOrErr() ([]*Label, error) {
 		return e.Labels, nil
 	}
 	return nil, &NotLoadedError{edge: "labels"}
+}
+
+// FilesOrErr returns the Files value or an error if the edge
+// was not loaded in eager-loading.
+func (e PostEdges) FilesOrErr() ([]*Files, error) {
+	if e.loadedTypes[2] {
+		return e.Files, nil
+	}
+	return nil, &NotLoadedError{edge: "files"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -198,6 +210,11 @@ func (po *Post) QueryLabels() *LabelQuery {
 	return (&PostClient{config: po.config}).QueryLabels(po)
 }
 
+// QueryFiles queries the "files" edge of the Post entity.
+func (po *Post) QueryFiles() *FilesQuery {
+	return (&PostClient{config: po.config}).QueryFiles(po)
+}
+
 // Update returns a builder for updating this Post.
 // Note that you need to call Post.Unwrap() before calling this method if this Post
 // was returned from a transaction, and the transaction was committed or rolled back.
@@ -275,6 +292,30 @@ func (po *Post) appendNamedLabels(name string, edges ...*Label) {
 		po.Edges.namedLabels[name] = []*Label{}
 	} else {
 		po.Edges.namedLabels[name] = append(po.Edges.namedLabels[name], edges...)
+	}
+}
+
+// NamedFiles returns the Files named value or an error if the edge was not
+// loaded in eager-loading with this name.
+func (po *Post) NamedFiles(name string) ([]*Files, error) {
+	if po.Edges.namedFiles == nil {
+		return nil, &NotLoadedError{edge: name}
+	}
+	nodes, ok := po.Edges.namedFiles[name]
+	if !ok {
+		return nil, &NotLoadedError{edge: name}
+	}
+	return nodes, nil
+}
+
+func (po *Post) appendNamedFiles(name string, edges ...*Files) {
+	if po.Edges.namedFiles == nil {
+		po.Edges.namedFiles = make(map[string][]*Files)
+	}
+	if len(edges) == 0 {
+		po.Edges.namedFiles[name] = []*Files{}
+	} else {
+		po.Edges.namedFiles[name] = append(po.Edges.namedFiles[name], edges...)
 	}
 }
 
