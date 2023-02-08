@@ -6,7 +6,6 @@ package resolver
 import (
 	"context"
 
-	"aiisx.com/src/database/graphql/graph/generated"
 	"aiisx.com/src/ent"
 )
 
@@ -24,8 +23,3 @@ func (r *mutationResolver) UpdateLabel(ctx context.Context, id int, input ent.Up
 func (r *mutationResolver) DeleteLabel(ctx context.Context, id int) (int, error) {
 	return id, ent.FromContext(ctx).Label.DeleteOneID(id).Exec(ctx)
 }
-
-// Mutation returns generated.MutationResolver implementation.
-func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
-
-type mutationResolver struct{ *Resolver }

@@ -1,5 +1,6 @@
 package resolver
 
+//go:generate go run github.com/99designs/gqlgen generate
 import (
 	"aiisx.com/src/database/graphql/graph/generated"
 	"aiisx.com/src/ent"

@@ -49,7 +49,7 @@ autobind:
   - aiisx.com/src/ent/user
   - aiisx.com/src/ent/post
   - aiisx.com/src/ent/label
-
+  - aiisx.com/src/ent/files
 # This section declares type mapping between the GraphQL and go type systems
 #
 # The first line in each type will be used as defaults for resolver arguments and

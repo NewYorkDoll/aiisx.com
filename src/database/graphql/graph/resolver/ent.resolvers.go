@@ -29,6 +29,11 @@ func (r *queryResolver) Nodes(ctx context.Context, ids []int) ([]ent.Noder, erro
 	return ent.FromContext(ctx).Noders(ctx, ids)
 }
 
+// Filesslice is the resolver for the filesslice field.
+func (r *queryResolver) Filesslice(ctx context.Context, after *ent.Cursor, first *int, before *ent.Cursor, last *int, orderBy *ent.FilesOrder, where *ent.FilesWhereInput) (*ent.FilesConnection, error) {
+	panic(fmt.Errorf("not implemented: Filesslice - filesslice"))
+}
+
 // Githubevents is the resolver for the githubevents field.
 func (r *queryResolver) Githubevents(ctx context.Context, after *ent.Cursor, first *int, before *ent.Cursor, last *int, orderBy *ent.GithubEventOrder, where *ent.GithubEventWhereInput) (*ent.GithubEventConnection, error) {
 	db := ent.FromContext(ctx)

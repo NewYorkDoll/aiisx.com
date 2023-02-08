@@ -1,0 +1,5 @@
+extend type Mutation {
+  createFiles(input: CreateFilesInput!): Files!
+  updateFiles(id: ID!, input: UpdateFilesInput!): Files!
+  deleteFiles(id: ID!): ID!
+}
