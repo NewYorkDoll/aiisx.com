@@ -17,7 +17,7 @@ const props = withDefaults(
   <n-popover
     trigger="hover"
     style="padding: 2px 6px"
-    :to="false"
+    to="body"
     :placement="props.placement"
   >
     <template #trigger>
