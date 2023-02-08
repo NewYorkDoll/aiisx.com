@@ -143,6 +143,7 @@ func main() {
 	r.GET("/repost", ReverseProxy())
 	r.GET("/admin/*id", ReverseProxy())
 	r.GET("/_nuxt/*id", ReverseProxy())
+	r.GET("/favicon.png", ReverseProxy())
 	r.GET("/graphql", func(c *gin.Context) {
 		playground.Handler("GraphQL playground", "/query").ServeHTTP(c.Writer, c.Request)
 	})
