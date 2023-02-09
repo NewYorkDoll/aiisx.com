@@ -13,10 +13,10 @@ export default defineNuxtConfig({
       title: "Website of 绎紫洛英",
       link: [{ rel: "icon", type: "image/x-icon", href: "/favicon.png" }],
     },
-
   },
+  plugins: [{ src: "@/plugins/baidu", mode: "client" }],
   modules: [
-    '@nuxtjs/tailwindcss',
+    "@nuxtjs/tailwindcss",
     "@unocss/nuxt",
     "nuxt-graphql-client",
     [
