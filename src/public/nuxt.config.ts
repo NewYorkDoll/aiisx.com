@@ -12,6 +12,14 @@ export default defineNuxtConfig({
     head: {
       title: "Website of 绎紫洛英",
       link: [{ rel: "icon", type: "image/x-icon", href: "/favicon.png" }],
+      script: [
+        {
+          src: "https://umami.aiisx.com/umami.js",
+          async: true,
+          defer: true,
+          "data-website-id": "f9b403eb-6d5f-4712-9ef3-50f73ac015c3",
+        },
+      ],
     },
   },
   plugins: [{ src: "@/plugins/baidu", mode: "client" }],
