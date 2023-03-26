@@ -123,9 +123,6 @@ const state = useBaseState();
         </n-layout-footer>
       </n-card>
     </div>
-    <footer class="absolute bottom-6">
-      <a href="https://beian.miit.gov.cn/" target="_blank">宁ICP备16000711号</a>
-    </footer>
   </div>
 </template>
 <style>
