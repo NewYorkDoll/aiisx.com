@@ -4,6 +4,7 @@ import { branchMenuOptions } from "@/lib/core/navigation";
 import { version as vueVersion } from "vue";
 
 const state = useBaseState();
+console.log(state.base)
 </script>
 <template>
   <div class="flex items-stretch justify-center flex-auto w-full h-full lg:items-center">
@@ -32,7 +33,6 @@ const state = useBaseState();
                   </n-icon>
                 </span>
               </template>
-              build date: {{state.base!.version.date}}
             </n-tooltip>
 
             <n-popover
@@ -79,7 +79,6 @@ const state = useBaseState();
               <n-icon class="mr-1 align-middle">
                 <div class="i-logos-gopher"></div>
               </n-icon>
-              {{ state.base!.version.goVersion.replace(/^go/, "") }}
             </span>
             <span class="bar-item misc">
               <n-icon class="mr-1 align-middle">
